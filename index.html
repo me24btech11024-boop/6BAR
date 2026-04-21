@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ME2220: 6-Bar Mechanism Project</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Structural CSS to enforce the new layout */
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f8f9fa;
+        }
+
+        /* Top Navigation - Chrome Tab Style */
+        .top-nav {
+            display: flex;
+            background-color: #dee2e6;
+            padding: 10px 10px 0 10px;
+            border-bottom: 1px solid #ced4da;
+        }
+        .top-nav a {
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #495057;
+            background-color: #e9ecef;
+            border-radius: 8px 8px 0 0;
+            margin-right: 5px;
+            border: 1px solid #ced4da;
+            border-bottom: none;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .top-nav a:hover {
+            background-color: #f8f9fa;
+        }
+        .top-nav a.active {
+            background-color: #fff;
+            font-weight: bold;
+            color: #212529;
+            border-bottom: 2px solid #fff;
+            margin-bottom: -1px; /* Overlaps the bottom border */
+        }
+
+        /* Main Dashboard Container */
+        .app-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        /* Left Sidebar - Input Controls (approx 1/5th to 1/6th width) */
+        .sidebar {
+            width: 20%;
+            min-width: 220px;
+            max-width: 300px;
+            background-color: #f1f3f5;
+            padding: 20px;
+            border-right: 1px solid #ced4da;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .sidebar h3 {
+            margin-top: 0;
+            font-size: 1.1em;
+            color: #343a40;
+            border-bottom: 2px solid #adb5bd;
+            padding-bottom: 10px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.85em;
+            color: #495057;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button.update-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+        button.update-btn:hover {
+            background-color: #0b5ed7;
+        }
+
+        /* Right Content Area */
+        .main-content {
+            width: 80%;
+            flex: 1;
+            padding: 30px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .content-card {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="top-nav">
+        <a href="index.html" class="active">Home</a>
+        <a href="synthesis.html">Mechanism Synthesis</a>
+        <a href="position.html">Position Analysis</a>
+        <a href="velocity.html">Velocity Analysis</a>
+        <a href="acceleration.html">Acceleration and Dynamic Force Analysis</a>
+        <a href="animation.html">Animation</a>
+    </nav>
+
+    <div class="app-container">
+        
+        <aside class="sidebar">
+            <h3>Global Parameters</h3>
+            <form id="params-form">
+                <div class="input-group">
+                    <label for="radius">Sector Radius (cm)</label>
+                    <input type="number" id="radius" value="5" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="pos-b">Pos B Drop (mm)</label>
+                    <input type="number" id="pos-b" value="5" step="1">
+                </div>
+                <div class="input-group">
+                    <label for="pos-c">Pos C Drop (mm)</label>
+                    <input type="number" id="pos-c" value="15" step="1">
+                </div>
+                <div class="input-group">
+                    <label for="time-ratio">Time Ratio (Forward:Return)</label>
+                    <input type="number" id="time-ratio" value="2" step="0.1">
+                </div>
+                <button type="button" class="update-btn" onclick="saveGlobalParameters()">Update Mechanism</button>
+            </form>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-card">
+                <h1>ME2220: Project Stage II</h1>
+                <h2>Problem Statement & Overview</h2>
+                <p>
+                    The objective is to synthesize a <strong>6-bar quick-return mechanism</strong> using revolute and prismatic joints. The mechanism must move a 270° circular sector (radius 5 cm) from orientation A to C through B. 
+                </p>
+                <ul>
+                    <li><strong>Motion Path:</strong> The center of the object translates strictly vertically downwards (5 mm at Position B, 15 mm at Position C).</li>
+                    <li><strong>Rotation:</strong> The object exhibits a 180° rotation between positions A and C.</li>
+                    <li><strong>Timing:</strong> The mechanism must execute a quick-return motion, returning to position A twice as fast as the forward stroke (Time Ratio = 2).</li>
+                </ul>
+                <p>
+                    <strong>Mechanism Architecture:</strong> Based on the desired output, the model utilizes a 6-bar linkage. A primary four-bar crank-rocker loop acts as the time-ratio driver, while a secondary dyad connected to the slider ensures pure vertical translation and the required rotational output of the sector.
+                </p>
+                <p>
+                    <em>Use the left control panel to adjust the numerical dimensions. The variables are saved globally and will update the kinematic analysis and animation on the subsequent tabs.</em>
+                </p>
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        // Save inputs to localStorage so they persist across tabs
+        function saveGlobalParameters() {
+            const params = {
+                radius: parseFloat(document.getElementById('radius').value),
+                posB: parseFloat(document.getElementById('pos-b').value),
+                posC: parseFloat(document.getElementById('pos-c').value),
+                timeRatio: parseFloat(document.getElementById('time-ratio').value)
+            };
+            localStorage.setItem('mechanismParams', JSON.stringify(params));
+            alert("Global parameters updated. Switch tabs to view the updated 6-bar analysis.");
+        }
+        
+        // Load stored parameters on page load
+        window.onload = function() {
+            const saved = JSON.parse(localStorage.getItem('mechanismParams'));
+            if(saved) {
+                document.getElementById('radius').value = saved.radius;
+                document.getElementById('pos-b').value = saved.posB;
+                document.getElementById('pos-c').value = saved.posC;
+                document.getElementById('time-ratio').value = saved.timeRatio;
+            } else {
+                // Initialize if empty
+                saveGlobalParameters();
+            }
+        }
+    </script>
+</body>
+</html>
