@@ -13,11 +13,11 @@
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background-color: #f8f9fa; color: #333; }
         
-        .sidebar { width: 17%; min-width: 260px; background-color: #2c3e50; color: white; padding: 20px; display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
-        .sidebar h2 { font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #4ca1af; padding-bottom: 10px; }
-        .control-group { margin-bottom: 12px; }
-        .control-group label { display: block; font-size: 0.85rem; margin-bottom: 4px; color: #bdc3c7; }
-        .control-group input { width: 100%; padding: 6px; border: 1px solid #34495e; border-radius: 4px; background-color: #ecf0f1; color: #2c3e50; box-sizing: border-box; font-weight: bold;}
+        .sidebar { width: 17%; min-width: 280px; background-color: #2c3e50; color: white; padding: 20px; display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
+        .sidebar h2 { font-size: 1.1rem; margin-top: 0; margin-bottom: 12px; border-bottom: 1px solid #4ca1af; padding-bottom: 8px; }
+        .control-group { margin-bottom: 10px; }
+        .control-group label { display: block; font-size: 0.8rem; margin-bottom: 4px; color: #bdc3c7; }
+        .control-group input, .control-group select { width: 100%; padding: 6px; border: 1px solid #34495e; border-radius: 4px; background-color: #ecf0f1; color: #2c3e50; box-sizing: border-box; font-weight: bold;}
         
         .main-content { flex: 1; display: flex; flex-direction: column; background-color: white; overflow: hidden; }
         .tabs { display: flex; background-color: #ecf0f1; border-bottom: 2px solid #bdc3c7; }
@@ -31,8 +31,8 @@
         .derivation-column { flex: 1.2; min-width: 400px;}
         .graphs-column { flex: 1.5; display: flex; flex-direction: column; gap: 15px; position: sticky; top: 0;}
         
-        .math-box { background-color: #f1f8ff; border-left: 4px solid #2980b9; padding: 15px 20px; margin-bottom: 15px; border-radius: 0 4px 4px 0; font-size: 0.95rem;}
-        .math-box h3 { margin-top: 0; color: #2c3e50; font-size: 1.05rem; }
+        .math-box { background-color: #f1f8ff; border-left: 4px solid #2980b9; padding: 12px 15px; margin-bottom: 15px; border-radius: 0 4px 4px 0; font-size: 0.9rem;}
+        .math-box h3 { margin-top: 0; margin-bottom: 8px; color: #2c3e50; font-size: 1.0rem; }
         
         .canvas-container { background: #fff; border: 1px solid #bdc3c7; border-radius: 8px; padding: 10px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative;}
         canvas { width: 100%; background: #ffffff; border-radius: 4px;}
@@ -43,18 +43,28 @@
 <body>
 
     <aside class="sidebar">
-        <h2>Mass Properties</h2>
-        <div class="control-group"><label>Crank Mass m2 (kg)</label><input type="number" step="0.1" id="m2" value="0.5" onchange="runAnalysis()"></div>
-        <div class="control-group"><label>Crank Inertia I2 (kg-m²)</label><input type="number" step="0.001" id="i2" value="0.001" onchange="runAnalysis()"></div>
-        <div class="control-group"><label>Slider A Mass m3 (kg)</label><input type="number" step="0.1" id="m3" value="0.1" onchange="runAnalysis()"></div>
-        <div class="control-group"><label>Lever Mass m4 (kg)</label><input type="number" step="0.1" id="m4" value="1.2" onchange="runAnalysis()"></div>
-        <div class="control-group"><label>Lever Inertia I4 (kg-m²)</label><input type="number" step="0.001" id="i4" value="0.008" onchange="runAnalysis()"></div>
-        <div class="control-group"><label>Disk+Slider Mass (kg)</label><input type="number" step="0.1" id="m_disk" value="0.4" onchange="runAnalysis()"></div>
-        
-        <h2 style="margin-top: 15px; border-top: 1px solid #4ca1af; padding-top: 15px;">Kinematics</h2>
-        <div class="control-group"><label>Crank Radius (mm)</label><input type="number" id="crank" value="30" onchange="runAnalysis()"></div>
-        <div class="control-group"><label>Ground Dist (mm)</label><input type="number" id="dfix" value="60" onchange="runAnalysis()"></div>
-        <div class="control-group"><label>Input Velocity $\omega$ (rad/s)</label><input type="number" id="omega" value="10.0" onchange="runAnalysis()"></div>
+        <h2>Task Specifications</h2>
+        <div class="control-group"><label>Time Ratio</label><input type="number" id="tr" value="2.0" step="0.05" onchange="updateFromTR()"></div>
+        <div class="control-group"><label>Target Drop B (45°) (mm)</label><input type="number" id="dropB" value="5" step="0.5" onchange="runAnalysis()"></div>
+        <div class="control-group"><label>Target Drop C (90°) (mm)</label><input type="number" id="dropC" value="15" step="0.5" onchange="runAnalysis()"></div>
+
+        <h2 style="margin-top: 10px;">Kinematic Parameters</h2>
+        <div class="control-group"><label>Crank Radius O2-A (mm)</label><input type="number" id="crank" value="30" onchange="updateFromGeom()"></div>
+        <div class="control-group"><label>Ground O2-O4 (mm)</label><input type="number" id="dfix" value="60" onchange="updateFromGeom()"></div>
+        <div class="control-group"><label>Input Velocity $\omega$ (rad/s)</label><input type="number" id="omega" value="6.283185" onchange="runAnalysis()"></div>
+
+        <h2 style="margin-top: 10px;">Material & Properties</h2>
+        <div class="control-group">
+            <label>Material Density ($\rho$ kg/m³)</label>
+            <select id="material" onchange="runAnalysis()">
+                <option value="2700">Aluminum (2700 kg/m³)</option>
+                <option value="7850">Steel (7850 kg/m³)</option>
+                <option value="4500">Titanium (4500 kg/m³)</option>
+                <option value="1150">Nylon/Plastic (1150 kg/m³)</option>
+            </select>
+        </div>
+        <div class="control-group"><label>Link Width (mm)</label><input type="number" id="link_w" value="10" onchange="runAnalysis()"></div>
+        <div class="control-group"><label>Link Thickness (mm)</label><input type="number" id="link_t" value="5" onchange="runAnalysis()"></div>
     </aside>
 
     <main class="main-content">
@@ -77,18 +87,17 @@
             </div>
 
             <div class="dfa-grid">
-                
                 <div class="derivation-column">
                     <div id="derivation-output"></div>
                     <div class="canvas-container" style="margin-top: 15px;">
                         <h4 style="margin:0 0 5px 0; color:#2c3e50;">Force Vector Polygon (Link 2)</h4>
-                        <canvas id="polyCanvas" width="400" height="350"></canvas>
+                        <canvas id="polyCanvas" width="400" height="230"></canvas>
                     </div>
                 </div>
 
                 <div class="graphs-column">
                     <div class="canvas-container">
-                        <h4 style="margin:0 0 5px 0; color:#2c3e50;">Required Input Torque vs. Crank Angle</h4>
+                        <h4 style="margin:0 0 5px 0; color:#2c3e50;">Required Input Torque vs. Crank Angle (Energy Method)</h4>
                         <canvas id="torqueCanvas" width="500" height="240"></canvas>
                     </div>
                     <div class="canvas-container">
@@ -101,26 +110,53 @@
     </main>
 
     <script>
+        // Two-Way Binding Logic
+        function updateFromTR() {
+            let tr = parseFloat(document.getElementById('tr').value);
+            if (tr <= 1.0) { tr = 1.01; document.getElementById('tr').value = tr; }
+            let d_fix = parseFloat(document.getElementById('dfix').value);
+            let current_crank = parseFloat(document.getElementById('crank').value);
+            let new_crank;
+
+            if (current_crank < d_fix) {
+                let alpha_deg = 90 * (tr - 1) / (tr + 1);
+                new_crank = d_fix * Math.sin(alpha_deg * Math.PI / 180);
+            } else {
+                let phi_deg = 180 / (tr + 1);
+                new_crank = d_fix / Math.cos(phi_deg * Math.PI / 180);
+            }
+            document.getElementById('crank').value = new_crank.toFixed(2);
+            runAnalysis();
+        }
+
+        function updateFromGeom() {
+            if (document.activeElement.id !== 'tr') {
+                let current_crank = parseFloat(document.getElementById('crank').value);
+                let current_dfix = parseFloat(document.getElementById('dfix').value);
+                let new_tr;
+
+                if (current_crank < current_dfix) {
+                    let alpha_deg = Math.asin(current_crank / current_dfix) * 180 / Math.PI;
+                    new_tr = (180 + 2 * alpha_deg) / (180 - 2 * alpha_deg);
+                } else {
+                    let phi_deg = Math.acos(current_dfix / current_crank) * 180 / Math.PI;
+                    new_tr = (180 / phi_deg) - 1;
+                }
+                document.getElementById('tr').value = new_tr.toFixed(2);
+            }
+            runAnalysis();
+        }
+
         function solveLinearSystem(A, B) {
-            let n = B.length;
-            let M = [];
-            for (let i = 0; i < n; i++) M.push([...A[i], B[i]]);
-            
+            let n = B.length; let M = []; for (let i = 0; i < n; i++) M.push([...A[i], B[i]]);
             for (let i = 0; i < n; i++) {
                 let maxRow = i;
-                for (let j = i + 1; j < n; j++) {
-                    if (Math.abs(M[j][i]) > Math.abs(M[maxRow][i])) maxRow = j;
-                }
+                for (let j = i + 1; j < n; j++) if (Math.abs(M[j][i]) > Math.abs(M[maxRow][i])) maxRow = j;
                 let temp = M[i]; M[i] = M[maxRow]; M[maxRow] = temp;
-                
                 if (Math.abs(M[i][i]) < 1e-12) continue; 
-                
                 for (let j = i + 1; j < n; j++) {
                     let c = -M[j][i] / M[i][i];
-                    for (let k = i; k <= n; k++) {
-                        if (i === k) M[j][k] = 0;
-                        else M[j][k] += c * M[i][k];
-                    }
+                    for (let k = i; k <= n; k++) if (i === k) M[j][k] = 0; else M[j][k] += c * M[i][k];
                 }
             }
             let x = new Array(n).fill(0);
@@ -132,32 +168,53 @@
             return x;
         }
 
-        let PRECOMPUTED = { torques: [], shaking: [], maxT: 0, maxIdx: 0 };
-        const N_PTS = 720;
-        
-        const x_d = -35.0, r_p = 18.0, beta_body = 150.0 * Math.PI / 180.0;
+        let PRECOMPUTED = { torques: [], shaking: [], energies: [], ne_results: [], maxT: 0, maxIdx: 0 };
+        const N_PTS = 720; // Resolution matching the python array density
+        const x_d_m = -35.0 * 0.001, r_p_m = 18.0 * 0.001, beta_body = 150.0 * Math.PI / 180.0;
         let MECH = {};
 
-        function getParams() {
+        function calculateMaterialProperties() {
+            let rho = parseFloat(document.getElementById('material').value);
+            let w = parseFloat(document.getElementById('link_w').value) * 0.001;
+            let t = parseFloat(document.getElementById('link_t').value) * 0.001;
+            let rc = parseFloat(document.getElementById('crank').value) * 0.001;
+            let ll = 95.0 * 0.001; 
+            
+            let area = w * t;
+            let m2 = rho * area * rc;
+            let m4 = rho * area * ll;
+            let l5_m = MECH.L5 * 0.001;
+            let m_rod = rho * area * l5_m;
+            let m3 = rho * (w * 1.5)**3; // Slider A (Point Mass)
+            let m_sliderC = 0.20;        // Slider C (Point Mass)
+
+            let radius_m = 50.0 * 0.001;
+            let object_area = 0.5 * (1.5 * Math.PI) * radius_m**2;
+            let m_disk = rho * t * object_area;
+            
+            let cg_comp = -4.0 * radius_m / (9.0 * Math.PI); // Local CG of 270 deg sector
+            let I_disk_center = 0.5 * m_disk * radius_m**2;
+            let I_disk_cg = I_disk_center - m_disk * (cg_comp**2 + cg_comp**2);
+
+            let i2 = m2 * (rc**2) / 12.0;
+            let i4 = m4 * (ll**2) / 12.0;
+            let i_rod = m_rod * (l5_m**2) / 12.0;
+
             return {
-                m2: parseFloat(document.getElementById('m2').value),
-                I2: parseFloat(document.getElementById('i2').value),
-                m3: parseFloat(document.getElementById('m3').value),
-                m4: parseFloat(document.getElementById('m4').value),
-                I4: parseFloat(document.getElementById('i4').value),
-                m_disk: parseFloat(document.getElementById('m_disk').value),
-                rc: parseFloat(document.getElementById('crank').value) * 0.001,
-                df: parseFloat(document.getElementById('dfix').value) * 0.001,
-                la: 25.0 * 0.001,
-                ll: 95.0 * 0.001,
+                rho, materialName: document.getElementById('material').options[document.getElementById('material').selectedIndex].text,
+                m2, I2: i2, m4, I4: i4, m_rod, I_rod: i_rod, 
+                m3, m_sliderC, m_disk, I_disk_cg, cg_comp,
+                rc, df: parseFloat(document.getElementById('dfix').value) * 0.001,
+                la: 25.0 * 0.001, ll,
                 omega: parseFloat(document.getElementById('omega').value),
-                alpha: 0,
-                g: 9.81
+                alpha: 0, g: 9.81
             };
         }
 
         function solveInstantaneous(phi_rad, P) {
+            // BASE KINEMATICS
             let Ax = P.rc * Math.cos(phi_rad), Ay = P.rc * Math.sin(phi_rad);
+            let vAx = P.rc * P.omega * -Math.sin(phi_rad), vAy = P.rc * P.omega * Math.cos(phi_rad);
             let D_sq = P.rc**2 + P.df**2 - 2 * P.rc * P.df * Math.cos(phi_rad);
             let psi = Math.atan2(Ay, Ax - P.df);
 
@@ -168,19 +225,62 @@
 
             let aAx = P.rc * P.alpha * -Math.sin(phi_rad) - P.rc * P.omega**2 * Math.cos(phi_rad);
             let aAy = P.rc * P.alpha * Math.cos(phi_rad) - P.rc * P.omega**2 * Math.sin(phi_rad);
+            let Cy = P.la * Math.sin(psi);
+            let vCy = P.la * psi_dot * Math.cos(psi);
             let aCy = P.la * (psi_ddot * Math.cos(psi) - psi_dot**2 * Math.sin(psi));
 
-            // CG Arrays
+            // DISK / SECONDARY LOOP KINEMATICS
+            let o5x_m = MECH.O5x * 0.001, o5y_m = MECH.O5y * 0.001, l5_m = MECH.L5 * 0.001;
+            let dx_c = x_d_m - o5x_m, dy_c = Cy - o5y_m;
+            let R_c = Math.hypot(dx_c, dy_c);
+            let K_val = (l5_m**2 - dx_c**2 - dy_c**2 - r_p_m**2) / (2 * r_p_m);
+            let ratio = Math.max(-1, Math.min(1, K_val / R_c));
+            let alpha_ang = Math.atan2(dy_c, dx_c) + Math.acos(ratio);
+            let theta_rad = beta_body - alpha_ang;
+
+            let q = beta_body - theta_rad;
+            let Px = x_d_m + r_p_m * Math.cos(q), Py = Cy + r_p_m * Math.sin(q);
+            let Rx = Px - o5x_m, Ry = Py - o5y_m;
+            let P_thetax = r_p_m * Math.sin(q), P_thetay = -r_p_m * Math.cos(q);
+            let denom = Rx * P_thetax + Ry * P_thetay;
+            
+            let theta_dot = denom !== 0 ? -(Ry * vCy) / denom : 0;
+            let vPx = P_thetax * theta_dot, vPy = vCy + P_thetay * theta_dot;
+
+            // --- ENERGY METHOD (Exact System Virtual Work) ---
+            let v_crank_cg_sq = (vAx/2)**2 + (vAy/2)**2;
+            let E_crank = 0.5 * P.m2 * v_crank_cg_sq + 0.5 * P.I2 * P.omega**2 + P.m2 * P.g * (Ay/2);
+
+            let v_lever_cg_sq = ((P.ll/2)*psi_dot)**2;
+            let E_lever = 0.5 * P.m4 * v_lever_cg_sq + 0.5 * P.I4 * psi_dot**2 + P.m4 * P.g * (P.ll/2 * Math.sin(psi));
+
+            let v_rod_cg_sq = (vPx/2)**2 + (vPy/2)**2;
+            let rod_omega = (Rx*vPy - Ry*vPx) / (l5_m**2);
+            let E_rod = 0.5 * P.m_rod * v_rod_cg_sq + 0.5 * P.I_rod * rod_omega**2 + P.m_rod * P.g * ((o5y_m + Py)/2);
+
+            let E_sliderC = 0.5 * P.m_sliderC * vCy**2 + P.m_sliderC * P.g * Cy;
+
+            let cg_x_offset = P.cg_comp * Math.cos(-theta_rad) - P.cg_comp * Math.sin(-theta_rad);
+            let cg_y_offset = P.cg_comp * Math.sin(-theta_rad) + P.cg_comp * Math.cos(-theta_rad);
+            let omega_disk = -theta_dot;
+            let v_disk_cg_x = 0 - omega_disk * cg_y_offset;
+            let v_disk_cg_y = vCy + omega_disk * cg_x_offset;
+            let E_disk = 0.5 * P.m_disk * (v_disk_cg_x**2 + v_disk_cg_y**2) + 0.5 * P.I_disk_cg * omega_disk**2 + P.m_disk * P.g * (Cy + cg_y_offset);
+
+            let E_sliderA = 0.5 * P.m3 * (vAx**2 + vAy**2) + P.m3 * P.g * Ay;
+
+            let total_energy = E_crank + E_lever + E_rod + E_sliderC + E_disk + E_sliderA;
+
+
+            // --- NEWTON-EULER MATRIX (For Pin Forces & Shaking) ---
             let CG2x = Ax / 2.0, CG2y = Ay / 2.0;
             let aG2x = aAx / 2.0, aG2y = aAy / 2.0;
-
             let Lx = P.df + P.ll * Math.cos(psi), Ly = P.ll * Math.sin(psi);
             let CG4x = (P.df + Lx) / 2.0, CG4y = Ly / 2.0;
             let aLx = P.ll * (psi_ddot * -Math.sin(psi) - psi_dot**2 * Math.cos(psi));
             let aLy = P.ll * (psi_ddot * Math.cos(psi) - psi_dot**2 * Math.sin(psi));
             let aG4x = aLx / 2.0, aG4y = aLy / 2.0;
 
-            // Moment Arms
             let R12x = -CG2x, R12y = -CG2y;
             let R32x = Ax - CG2x, R32y = Ay - CG2y;
             let R14x = P.df - CG4x, R14y = 0 - CG4y;
@@ -189,10 +289,9 @@
             let A_mat = Array.from({length: 9}, () => new Array(9).fill(0));
             let B_vec = new Array(9).fill(0);
 
-            // Link 2 (X[0]=F12x, X[1]=F12y, X[2]=F23x, X[3]=F23y)
+            // Link 2
             A_mat[0][0] = 1; A_mat[0][2] = -1; B_vec[0] = P.m2 * aG2x;
             A_mat[1][1] = 1; A_mat[1][3] = -1; B_vec[1] = P.m2 * aG2y + P.m2 * P.g;
-            // FIXED: Moment arm signs for F32 (which is -F23) are correctly inverted here
             A_mat[2][0] = -R12y; A_mat[2][1] = R12x; A_mat[2][2] = R32y; A_mat[2][3] = -R32x; A_mat[2][8] = 1; B_vec[2] = P.I2 * P.alpha;
 
             // Link 3
@@ -200,11 +299,11 @@
             A_mat[4][3] = 1; A_mat[4][7] = -1; B_vec[4] = P.m3 * aAy + P.m3 * P.g;
 
             // Link 4
-            let F_disk_y = P.m_disk * aCy + P.m_disk * P.g;
+            let effective_mass = P.m_disk + P.m_sliderC + (P.m_rod/2.0); // Simple mass lumping for matrix calculation
+            let F_disk_y = effective_mass * aCy + effective_mass * P.g;
             A_mat[5][4] = 1; A_mat[5][6] = 1; B_vec[5] = P.m4 * aG4x;
             A_mat[6][5] = 1; A_mat[6][7] = 1; B_vec[6] = P.m4 * aG4y + P.m4 * P.g + F_disk_y;
             
-            // FIXED: Added missing moment contribution from the disk force applied at point C
             let C_x = P.df + P.la * Math.cos(psi);
             let RC4x = C_x - CG4x;
             A_mat[7][4] = -R14y; A_mat[7][5] = R14x; A_mat[7][6] = -R34y; A_mat[7][7] = R34x; 
@@ -214,17 +313,49 @@
             A_mat[8][6] = Math.cos(psi); A_mat[8][7] = Math.sin(psi); B_vec[8] = 0;
 
             let X = solveLinearSystem(A_mat, B_vec);
+            
             return {
-                torque: X[8] || 0,
+                energy: total_energy,
+                ne_torque: X[8] || 0, // Not used for plotting, just debug
                 shaking: Math.hypot(-(X[0]||0) - (X[4]||0), -(X[1]||0) - (X[5]||0)),
                 F12: [X[0]||0, X[1]||0],
-                F32: [-X[2]||0, -X[3]||0], // F32 = -F23
+                F32: [-X[2]||0, -X[3]||0], 
                 aG2: [aG2x, aG2y]
             };
         }
 
         function runAnalysis() {
-            let P = getParams();
+            let rc_mm = parseFloat(document.getElementById('crank').value);
+            let df_mm = parseFloat(document.getElementById('dfix').value);
+            
+            let By_max = -9999, By_min = 9999, p_top = 0, p_bot = 0;
+            for(let p = 0; p <= Math.PI * 2; p += 0.01) {
+                let Ay = rc_mm * Math.sin(p), Ax = rc_mm * Math.cos(p);
+                let psi = Math.atan2(Ay, Ax - df_mm);
+                let By = 25.0 * Math.sin(psi);
+                if(By > By_max) { By_max = By; p_top = p; }
+                if(By < By_min) { By_min = By; p_bot = p; }
+            }
+            
+            let r_p_mm = 18.0; 
+            let P_top_x = -35.0 + r_p_mm * Math.cos(beta_body);
+            let P_top_y = By_max + r_p_mm * Math.sin(beta_body);
+            let P_bot_x = -35.0 + r_p_mm * Math.cos(beta_body - Math.PI/2);
+            let P_bot_y = By_min + r_p_mm * Math.sin(beta_body - Math.PI/2);
+            let dx = P_bot_x - P_top_x, dy = P_bot_y - P_top_y;
+            let perp_x = -dy / Math.hypot(dx, dy), perp_y = dx / Math.hypot(dx, dy);
+            
+            MECH.O5x = ((P_top_x + P_bot_x)/2) - 20.0 * perp_x;
+            MECH.O5y = ((P_top_y + P_bot_y)/2) - 20.0 * perp_y;
+            MECH.L5 = Math.hypot(MECH.O5x - P_top_x, MECH.O5y - P_top_y);
+            MECH.fwd_arc = (p_bot - p_top) % (2*Math.PI);
+            if(MECH.fwd_arc < 0) MECH.fwd_arc += 2*Math.PI;
+            MECH.phi_start = p_top;
+
+            let P = calculateMaterialProperties();
+            
+            PRECOMPUTED.energies = new Array(N_PTS);
+            PRECOMPUTED.ne_results = new Array(N_PTS);
             PRECOMPUTED.torques = new Array(N_PTS);
             PRECOMPUTED.shaking = new Array(N_PTS);
             PRECOMPUTED.maxT = 0;
@@ -232,48 +363,38 @@
             for(let i=0; i<N_PTS; i++) {
                 let phi = i * (2 * Math.PI) / N_PTS;
                 let res = solveInstantaneous(phi, P);
-                PRECOMPUTED.torques[i] = res.torque;
+                PRECOMPUTED.energies[i] = res.energy;
+                PRECOMPUTED.ne_results[i] = res;
                 PRECOMPUTED.shaking[i] = res.shaking;
+            }
+
+            // Energy Method: T = dE/dphi via Central Finite Difference
+            let dphi = (2 * Math.PI) / N_PTS;
+            for(let i=0; i<N_PTS; i++) {
+                let next = (i + 1) % N_PTS;
+                let prev = (i - 1 + N_PTS) % N_PTS;
+                let t = (PRECOMPUTED.energies[next] - PRECOMPUTED.energies[prev]) / (2 * dphi);
                 
-                if(Math.abs(res.torque) > Math.abs(PRECOMPUTED.maxT)) {
-                    PRECOMPUTED.maxT = res.torque;
+                PRECOMPUTED.torques[i] = t;
+                PRECOMPUTED.ne_results[i].energy_torque = t;
+                
+                if(Math.abs(t) > Math.abs(PRECOMPUTED.maxT)) {
+                    PRECOMPUTED.maxT = t;
                     PRECOMPUTED.maxIdx = i;
                 }
             }
-
-            // Sync Snap Geometry
-            let rc = P.rc * 1000, df = P.df * 1000, la = P.la * 1000;
-            let By_max = -9999, By_min = 9999, p_top = 0, p_bot = 0;
-            for(let p = 0; p <= Math.PI * 2; p += 0.01) {
-                let Ay = rc * Math.sin(p), Ax = rc * Math.cos(p);
-                let psi = Math.atan2(Ay, Ax - df);
-                let By = la * Math.sin(psi);
-                if(By > By_max) { By_max = By; p_top = p; }
-                if(By < By_min) { By_min = By; p_bot = p; }
-            }
-            let P_top_x = x_d + r_p * Math.cos(beta_body), P_top_y = By_max + r_p * Math.sin(beta_body);
-            let P_bot_x = x_d + r_p * Math.cos(beta_body - Math.PI/2), P_bot_y = By_min + r_p * Math.sin(beta_body - Math.PI/2);
-            let dx = P_bot_x - P_top_x, dy = P_bot_y - P_top_y;
-            let perp_x = -dy / Math.hypot(dx, dy), perp_y = dx / Math.hypot(dx, dy);
-            
-            MECH.O5x = ((P_top_x + P_bot_x)/2) - 20.0 * perp_x;
-            MECH.O5y = ((P_top_y + P_bot_y)/2) - 20.0 * perp_y;
-            MECH.L5 = Math.hypot(MECH.O5x - P_top_x, MECH.O5y - P_top_y);
-            MECH.rc = rc; MECH.df = df; MECH.la = la; MECH.phi_start = p_top;
-            let fwd_arc = (p_bot - p_top) % (2*Math.PI);
-            MECH.fwd_arc = fwd_arc < 0 ? fwd_arc + 2*Math.PI : fwd_arc;
-
             updateDashboard();
         }
 
         function solve_phi_for_target(target_deg) {
             let lo = MECH.phi_start, hi = MECH.phi_start + MECH.fwd_arc;
             let get_th = (phi) => {
-                let Ay = MECH.rc * Math.sin(phi), Ax = MECH.rc * Math.cos(phi);
-                let psi = Math.atan2(Ay, Ax - MECH.df);
-                let Cy = MECH.la * Math.sin(psi);
-                let dx_c = x_d - MECH.O5x, dy_c = Cy - MECH.O5y;
-                let K = (MECH.L5**2 - dx_c**2 - dy_c**2 - r_p**2) / (2 * r_p);
+                let Ay = parseFloat(document.getElementById('crank').value) * Math.sin(phi);
+                let Ax = parseFloat(document.getElementById('crank').value) * Math.cos(phi);
+                let psi = Math.atan2(Ay, Ax - parseFloat(document.getElementById('dfix').value));
+                let Cy = 25.0 * Math.sin(psi);
+                let dx_c = -35.0 - MECH.O5x, dy_c = Cy - MECH.O5y;
+                let K = (MECH.L5**2 - dx_c**2 - dy_c**2 - 18.0**2) / (2 * 18.0);
                 let alpha = Math.atan2(dy_c, dx_c) + Math.acos(Math.max(-1, Math.min(1, K/Math.hypot(dx_c, dy_c))));
                 return Math.max(0, Math.min(90, (beta_body - alpha) * 180 / Math.PI));
             };
@@ -288,49 +409,41 @@
             return ((0.5*(lo+hi)) % (2*Math.PI)) * 180 / Math.PI;
         }
 
-        function snapTo(target_theta) {
-            document.getElementById('phi-slider').value = solve_phi_for_target(target_theta);
-            updateDashboard();
-        }
+        function snapTo(target_theta) { document.getElementById('phi-slider').value = solve_phi_for_target(target_theta); updateDashboard(); }
 
         function updateDashboard() {
             let phi_deg = parseFloat(document.getElementById('phi-slider').value);
             document.getElementById('phi-display').innerText = phi_deg.toFixed(1);
-            let phi_rad = phi_deg * Math.PI / 180.0;
             
-            let P = getParams();
-            let inst = solveInstantaneous(phi_rad, P);
+            let idx = Math.round((phi_deg / 360.0) * N_PTS) % N_PTS;
+            if (idx < 0) idx += N_PTS;
+            
+            let inst = PRECOMPUTED.ne_results[idx];
+            let P = calculateMaterialProperties();
 
-            drawGraph('torqueCanvas', PRECOMPUTED.torques, '#06d6a0', phi_deg, inst.torque, true);
+            drawGraph('torqueCanvas', PRECOMPUTED.torques, '#06d6a0', phi_deg, inst.energy_torque, true);
             drawGraph('shakingCanvas', PRECOMPUTED.shaking, '#ff6b6b', phi_deg, inst.shaking, false);
             drawPolygon('polyCanvas', inst, P.m2 * P.g);
-            updateMathHTML(inst, phi_deg);
+            updateMathHTML(inst, phi_deg, P);
         }
 
         function drawGraph(canvasId, data, color, current_deg, current_val, isTorque) {
-            const canvas = document.getElementById(canvasId);
-            const ctx = canvas.getContext('2d');
+            const canvas = document.getElementById(canvasId); const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            const w = canvas.width, h = canvas.height;
-            const padX = 45, padY = 20;
-            
+            const w = canvas.width, h = canvas.height, padX = 45, padY = 20;
             let min = Math.min(...data), max = Math.max(...data);
-            const range = max - min || 1; // prevent divide by zero
+            const range = max - min || 1;
 
             ctx.strokeStyle = '#ecf0f1'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
             if(min < 0 && max > 0) {
                 let zeroY = (h - padY) - ((0 - min) / range) * (h - 2*padY);
                 ctx.beginPath(); ctx.moveTo(padX, zeroY); ctx.lineTo(w, zeroY); ctx.stroke();
             }
-            for(let i=0; i<=360; i+=90) {
-                let x = padX + (i/360)*(w - padX);
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h-padY); ctx.stroke();
-            }
+            for(let i=0; i<=360; i+=90) { let x = padX + (i/360)*(w - padX); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h-padY); ctx.stroke(); }
             ctx.setLineDash([]);
 
-            ctx.strokeStyle = color; ctx.lineWidth = 2.5;
-            ctx.beginPath();
+            ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.beginPath();
             for(let i=0; i<data.length; i++) {
                 let x = padX + (i/(data.length-1)) * (w - padX);
                 let y = (h - padY) - ((data[i] - min) / range) * (h - 2*padY);
@@ -338,126 +451,93 @@
             }
             ctx.stroke();
 
-            // Draw Max Marker (Only for Torque)
             if(isTorque) {
                 let max_x = padX + (PRECOMPUTED.maxIdx/(data.length-1)) * (w - padX);
                 let max_y = (h - padY) - ((PRECOMPUTED.maxT - min) / range) * (h - 2*padY);
-                ctx.beginPath(); ctx.arc(max_x, max_y, 4, 0, 2*Math.PI);
-                ctx.fillStyle = 'red'; ctx.fill();
-                ctx.font = 'bold 11px Arial';
-                ctx.fillText(`Max: ${PRECOMPUTED.maxT.toFixed(3)} N-m`, max_x-20, max_y + (PRECOMPUTED.maxT > 0 ? 15 : -10));
+                ctx.beginPath(); ctx.arc(max_x, max_y, 4, 0, 2*Math.PI); ctx.fillStyle = 'red'; ctx.fill();
+                ctx.font = 'bold 11px Arial'; ctx.fillText(`Max: ${PRECOMPUTED.maxT.toFixed(3)} N-m`, max_x-20, max_y + (PRECOMPUTED.maxT > 0 ? 15 : -10));
             }
 
-            // Current Slider Position Marker
             let cur_x = padX + (current_deg/360) * (w - padX);
             let cur_y = (h - padY) - ((current_val - min) / range) * (h - 2*padY);
-            ctx.beginPath(); ctx.arc(cur_x, cur_y, 5, 0, 2*Math.PI);
-            ctx.fillStyle = '#2c3e50'; ctx.fill();
-            ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.beginPath(); ctx.arc(cur_x, cur_y, 5, 0, 2*Math.PI); ctx.fillStyle = '#2c3e50'; ctx.fill(); ctx.strokeStyle = 'white'; ctx.lineWidth = 1.5; ctx.stroke();
 
-            // Axes Text
             ctx.fillStyle = '#7f8c8d'; ctx.font = '11px Arial';
-            ctx.fillText(max.toFixed(3), 2, padY + 4);
-            ctx.fillText(min.toFixed(3), 2, h - padY + 4);
+            ctx.fillText(max.toFixed(3), 2, padY + 4); ctx.fillText(min.toFixed(3), 2, h - padY + 4);
             ctx.fillText("0°", padX, h - 5); ctx.fillText("180°", padX + (w-padX)/2, h - 5); ctx.fillText("360°", w - 25, h - 5);
         }
 
         function drawPolygon(canvasId, inst, w2) {
-            const canvas = document.getElementById(canvasId);
-            const ctx = canvas.getContext('2d');
+            const canvas = document.getElementById(canvasId); const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            const F12 = [inst.F12[0], inst.F12[1]];
-            const F32 = [inst.F32[0], inst.F32[1]]; 
-            const W2 = [0, -w2];
-            const Res = [F12[0]+F32[0]+W2[0], F12[1]+F32[1]+W2[1]]; // m2 * aG2
+            const F12 = [inst.F12[0], inst.F12[1]], F32 = [inst.F32[0], inst.F32[1]], W2 = [0, -w2], Res = [F12[0]+F32[0]+W2[0], F12[1]+F32[1]+W2[1]];
 
-            ctx.save();
-            ctx.translate(canvas.width/2, canvas.height/2);
-            
+            ctx.save(); ctx.translate(canvas.width/2, canvas.height/2);
             const maxF = Math.max(Math.hypot(...F12), Math.hypot(...F32), Math.hypot(...Res), 1.0);
-            const S = (canvas.width/2 - 30) / (maxF * 1.2);
-            ctx.scale(S, -S); 
+            const S = (canvas.width/2 - 30) / (maxF * 1.2); ctx.scale(S, -S); 
 
-            // Grid & Axes
             ctx.strokeStyle = '#ecf0f1'; ctx.lineWidth = 1/S; ctx.setLineDash([3,3]);
-            ctx.beginPath(); ctx.moveTo(-maxF*2, 0); ctx.lineTo(maxF*2, 0); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, -maxF*2); ctx.lineTo(0, maxF*2); ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.strokeStyle = '#7f8c8d'; ctx.beginPath(); ctx.moveTo(-maxF*2, 0); ctx.lineTo(maxF*2, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -maxF*2); ctx.lineTo(0, maxF*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-maxF*2, 0); ctx.lineTo(maxF*2, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -maxF*2); ctx.lineTo(0, maxF*2); ctx.stroke();
+            ctx.setLineDash([]); ctx.strokeStyle = '#7f8c8d'; ctx.beginPath(); ctx.moveTo(-maxF*2, 0); ctx.lineTo(maxF*2, 0); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -maxF*2); ctx.lineTo(0, maxF*2); ctx.stroke();
 
-            // Draw Vectors Head to Tail
             const drawVec = (sx, sy, vx, vy, color, isDashed=false) => {
                 ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx+vx, sy+vy);
-                ctx.strokeStyle=color; ctx.lineWidth=2.5/S; 
-                if(isDashed) ctx.setLineDash([6/S, 6/S]); else ctx.setLineDash([]);
-                ctx.stroke();
-                // Arrow
-                const angle = Math.atan2(vy, vx);
-                ctx.beginPath(); ctx.moveTo(sx+vx, sy+vy);
+                ctx.strokeStyle=color; ctx.lineWidth=2.5/S; if(isDashed) ctx.setLineDash([6/S, 6/S]); else ctx.setLineDash([]); ctx.stroke();
+                const angle = Math.atan2(vy, vx); ctx.beginPath(); ctx.moveTo(sx+vx, sy+vy);
                 ctx.lineTo(sx+vx - 8/S*Math.cos(angle-Math.PI/7), sy+vy - 8/S*Math.sin(angle-Math.PI/7));
-                ctx.lineTo(sx+vx - 8/S*Math.cos(angle+Math.PI/7), sy+vy - 8/S*Math.sin(angle+Math.PI/7));
-                ctx.fillStyle=color; ctx.fill();
+                ctx.lineTo(sx+vx - 8/S*Math.cos(angle+Math.PI/7), sy+vy - 8/S*Math.sin(angle+Math.PI/7)); ctx.fillStyle=color; ctx.fill();
             };
 
-            drawVec(0, 0, F12[0], F12[1], '#3498db'); // F12 Blue
-            drawVec(F12[0], F12[1], F32[0], F32[1], '#f39c12'); // F32 Orange
-            drawVec(F12[0]+F32[0], F12[1]+F32[1], W2[0], W2[1], '#2ecc71'); // W2 Green
-            drawVec(0, 0, Res[0], Res[1], '#e74c3c', true); // Resultant Red Dashed
+            drawVec(0, 0, F12[0], F12[1], '#3498db'); drawVec(F12[0], F12[1], F32[0], F32[1], '#f39c12');
+            drawVec(F12[0]+F32[0], F12[1]+F32[1], W2[0], W2[1], '#2ecc71'); drawVec(0, 0, Res[0], Res[1], '#e74c3c', true);
 
             ctx.restore();
-            
-            // Legend Text
-            ctx.fillStyle = '#333'; ctx.font = '12px Arial';
-            ctx.fillText("🟦 F12 (Ground on Crank)", 10, 20); 
-            ctx.fillText("🟧 F32 (Slider on Crank)", 10, 40);
-            ctx.fillText("🟩 W2 (Gravity)", 10, 60); 
-            ctx.fillText("🟥 m2*aG2 (Resultant Inertia)", 10, 80);
+            ctx.fillStyle = '#333'; ctx.font = '11px Arial';
+            ctx.fillText("🟦 F12 (Ground on Crank)", 10, 15); ctx.fillText("🟧 F32 (Slider on Crank)", 10, 30);
+            ctx.fillText("🟩 W2 (Gravity)", 10, 45); ctx.fillText("🟥 m2*aG2 (Resultant Inertia)", 10, 60);
         }
 
-        function updateMathHTML(inst, phi) {
+        function updateMathHTML(inst, phi, P) {
             const html = `
-                <div class="math-box">
-                    <h3>Newton-Euler Matrix Formulation</h3>
-                    <p>We establish a 9x9 matrix $[A][X] = [B]$ using rigid body accelerations. The standard notation $F_{ij}$ represents the force exerted <strong>by</strong> link $i$ <strong>on</strong> link $j$.</p>
-                    <ul style="margin:5px 0; padding-left:20px; font-size: 0.9em; line-height:1.5;">
-                        <li><strong>$F_{12}$:</strong> Reaction force from Ground (1) on Crank (2) at $O_2$</li>
-                        <li><strong>$F_{32}$:</strong> Reaction force from Slider (3) on Crank (2) at $A$</li>
-                        <li><strong>$F_{14}$:</strong> Reaction force from Ground (1) on Lever (4) at $O_4$</li>
-                        <li><strong>$F_{34}$:</strong> Reaction force from Slider (3) on Lever (4)</li>
-                        <li><strong>$T_{12}$:</strong> Required Motor Torque from Ground (1) on Crank (2)</li>
+                <div class="math-box" style="background-color: #fff9c4; border-left-color: #f1c40f;">
+                    <h3>Material & Mass Properties</h3>
+                    <p style="font-size: 0.85rem; margin-bottom: 5px;">Based on <strong>${P.materialName}</strong> and geometry:</p>
+                    <ul style="margin:5px 0; padding-left:20px; font-size: 0.85em; line-height:1.4;">
+                        <li><strong>Links (Uniform Rods, $I=\\frac{mL^2}{12}$):</strong><br>
+                            Crank ($m_2$): ${P.m2.toFixed(3)} kg, Lever ($m_4$): ${P.m4.toFixed(3)} kg<br>
+                            O5-P Rod: ${P.m_rod.toFixed(3)} kg</li>
+                        <li style="margin-top: 4px;"><strong>Sliders & Disk:</strong><br>
+                            Slider A: ${P.m3.toFixed(3)} kg, Slider C: ${P.m_sliderC.toFixed(3)} kg<br>
+                            270&deg; Disk ($m_{disk}$): ${P.m_disk.toFixed(3)} kg, $I_{CG}$: ${(P.I_disk_cg*1e4).toFixed(3)}e-4 kg-m²</li>
                     </ul>
-                    <p><em>Note: By Newton's Third Law, the force exerted by the crank on the slider is $F_{23} = -F_{32}$.</em></p>
-                    <p style="margin-top: 10px;">The unknown force vector is:<br> $[F_{12x}, F_{12y}, F_{23x}, F_{23y}, F_{14x}, F_{14y}, F_{34x}, F_{34y}, T_{12}]^T$</p>
                 </div>
-                
+
                 <div class="math-box">
-                    <h3>Dynamic Equilibrium Equations</h3>
-                    <p><strong>Link 2 (Crank):</strong><br>
-                    $\\Sigma F_x: F_{12x} - F_{23x} = m_2 a_{G2x}$<br>
-                    $\\Sigma F_y: F_{12y} - F_{23y} = m_2 a_{G2y} + m_2 g$<br>
-                    $\\Sigma T: T_{12} + (\\vec{R}_{12} \\times \\vec{F}_{12}) + (\\vec{R}_{32} \\times \\vec{F}_{32}) = I_2 \\alpha_2$</p>
-                    
-                    <p><strong>Link 3 & 4 (Lever & Slider):</strong><br>
-                    $\\Sigma F: \\vec{F}_{14} + \\vec{F}_{34} = m_4 \\vec{a}_{G4} + \\vec{F}_{disk}$<br>
-                    $\\Sigma T: (\\vec{R}_{14} \\times \\vec{F}_{14}) + (\\vec{R}_{34} \\times \\vec{F}_{34}) + (\\vec{R}_{C4} \\times \\vec{F}_{disk}) = I_4 \\alpha_4$</p>
-                    <p><em>Constraint:</em> $F_{34x}\\cos\\psi + F_{34y}\\sin\\psi = 0$</p>
+                    <h3>Input Torque (Energy Method)</h3>
+                    <p>To capture the exact required torque without ignoring the disk's rotational inertia, we use the Virtual Work (Energy) Method across the entire system. Because energy is conserved, the motor torque is the derivative of the total system energy with respect to the input crank angle:</p>
+                    <p>$$ T_{in} = \\frac{d}{d\\phi} \\left( E_{kinetic} + E_{potential} \\right) $$</p>
+                    <p style="font-size: 0.85rem; margin-top: 5px;"><em>Note: The internal forces (like Shaking Force and Pin Reactions) are evaluated using the 9x9 Newton-Euler dynamic equilibrium matrix.</em></p>
                 </div>
 
                 <div class="math-box" style="border-left-color: #e74c3c;">
-                    <h3>Instantaneous Forces ($\\phi = ${phi.toFixed(1)}^\\circ$)</h3>
+                    <h3>Instantaneous State ($\\phi = ${phi.toFixed(1)}^\\circ$)</h3>
                     <ul style="margin:5px 0; padding-left:20px; line-height:1.6;">
-                        <li><strong>Input Torque ($T_{12}$):</strong> ${inst.torque.toFixed(4)} N-m</li>
-                        <li><strong>Shaking Force:</strong> ${inst.shaking.toFixed(3)} N</li>
-                        <li><strong>Ground Reaction ($F_{12}$):</strong> (${inst.F12[0].toFixed(2)}, ${inst.F12[1].toFixed(2)}) N</li>
+                        <li><strong>Required Input Torque:</strong> <span style="color:#d35400; font-weight:bold;">${inst.energy_torque.toFixed(4)} N-m</span></li>
+                        <li><strong>System Total Energy:</strong> ${inst.energy.toFixed(3)} Joules</li>
+                        <li><strong>Shaking Force (Matrix):</strong> ${inst.shaking.toFixed(3)} N</li>
+                        <li><strong>Ground Reaction at O2 ($F_{12}$):</strong> (${inst.F12[0].toFixed(2)}, ${inst.F12[1].toFixed(2)}) N</li>
                     </ul>
                 </div>
             `;
             document.getElementById('derivation-output').innerHTML = html;
-            if (window.MathJax) MathJax.typesetPromise();
+            if (window.MathJax) {
+                MathJax.typesetClear([document.getElementById('derivation-output')]);
+                MathJax.typesetPromise([document.getElementById('derivation-output')]);
+            }
         }
 
-        window.onload = runAnalysis;
+        window.onload = updateFromGeom;
     </script>
 </body>
 </html>
