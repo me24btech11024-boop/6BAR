@@ -101,7 +101,6 @@
     </main>
 
     <script>
-        // Gaussian Elimination Matrix Solver
         function solveLinearSystem(A, B) {
             let n = B.length;
             let M = [];
@@ -136,7 +135,6 @@
         let PRECOMPUTED = { torques: [], shaking: [], maxT: 0, maxIdx: 0 };
         const N_PTS = 720;
         
-        // Match v.html geometry solver for accurate Snap functionality
         const x_d = -35.0, r_p = 18.0, beta_body = 150.0 * Math.PI / 180.0;
         let MECH = {};
 
@@ -191,18 +189,28 @@
             let A_mat = Array.from({length: 9}, () => new Array(9).fill(0));
             let B_vec = new Array(9).fill(0);
 
+            // Link 2 (X[0]=F12x, X[1]=F12y, X[2]=F23x, X[3]=F23y)
             A_mat[0][0] = 1; A_mat[0][2] = -1; B_vec[0] = P.m2 * aG2x;
             A_mat[1][1] = 1; A_mat[1][3] = -1; B_vec[1] = P.m2 * aG2y + P.m2 * P.g;
-            A_mat[2][0] = -R12y; A_mat[2][1] = R12x; A_mat[2][2] = -R32y; A_mat[2][3] = R32x; A_mat[2][8] = 1; B_vec[2] = P.I2 * P.alpha;
+            // FIXED: Moment arm signs for F32 (which is -F23) are correctly inverted here
+            A_mat[2][0] = -R12y; A_mat[2][1] = R12x; A_mat[2][2] = R32y; A_mat[2][3] = -R32x; A_mat[2][8] = 1; B_vec[2] = P.I2 * P.alpha;
 
+            // Link 3
             A_mat[3][2] = 1; A_mat[3][6] = -1; B_vec[3] = P.m3 * aAx;
             A_mat[4][3] = 1; A_mat[4][7] = -1; B_vec[4] = P.m3 * aAy + P.m3 * P.g;
 
+            // Link 4
             let F_disk_y = P.m_disk * aCy + P.m_disk * P.g;
             A_mat[5][4] = 1; A_mat[5][6] = 1; B_vec[5] = P.m4 * aG4x;
             A_mat[6][5] = 1; A_mat[6][7] = 1; B_vec[6] = P.m4 * aG4y + P.m4 * P.g + F_disk_y;
-            A_mat[7][4] = -R14y; A_mat[7][5] = R14x; A_mat[7][6] = -R34y; A_mat[7][7] = R34x; B_vec[7] = P.I4 * psi_ddot;
+            
+            // FIXED: Added missing moment contribution from the disk force applied at point C
+            let C_x = P.df + P.la * Math.cos(psi);
+            let RC4x = C_x - CG4x;
+            A_mat[7][4] = -R14y; A_mat[7][5] = R14x; A_mat[7][6] = -R34y; A_mat[7][7] = R34x; 
+            B_vec[7] = P.I4 * psi_ddot + RC4x * F_disk_y; 
 
+            // Constraint
             A_mat[8][6] = Math.cos(psi); A_mat[8][7] = Math.sin(psi); B_vec[8] = 0;
 
             let X = solveLinearSystem(A_mat, B_vec);
@@ -210,7 +218,7 @@
                 torque: X[8] || 0,
                 shaking: Math.hypot(-(X[0]||0) - (X[4]||0), -(X[1]||0) - (X[5]||0)),
                 F12: [X[0]||0, X[1]||0],
-                F32: [X[2]||0, X[3]||0],
+                F32: [-X[2]||0, -X[3]||0], // F32 = -F23
                 aG2: [aG2x, aG2y]
             };
         }
@@ -308,7 +316,7 @@
             const padX = 45, padY = 20;
             
             let min = Math.min(...data), max = Math.max(...data);
-            const range = max - min;
+            const range = max - min || 1; // prevent divide by zero
 
             ctx.strokeStyle = '#ecf0f1'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
             if(min < 0 && max > 0) {
@@ -360,7 +368,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             const F12 = [inst.F12[0], inst.F12[1]];
-            const F32 = [-inst.F32[0], -inst.F32[1]]; // -F32 is the reaction
+            const F32 = [inst.F32[0], inst.F32[1]]; 
             const W2 = [0, -w2];
             const Res = [F12[0]+F32[0]+W2[0], F12[1]+F32[1]+W2[1]]; // m2 * aG2
 
@@ -393,7 +401,7 @@
             };
 
             drawVec(0, 0, F12[0], F12[1], '#3498db'); // F12 Blue
-            drawVec(F12[0], F12[1], F32[0], F32[1], '#f39c12'); // -F32 Orange
+            drawVec(F12[0], F12[1], F32[0], F32[1], '#f39c12'); // F32 Orange
             drawVec(F12[0]+F32[0], F12[1]+F32[1], W2[0], W2[1], '#2ecc71'); // W2 Green
             drawVec(0, 0, Res[0], Res[1], '#e74c3c', true); // Resultant Red Dashed
 
@@ -402,7 +410,7 @@
             // Legend Text
             ctx.fillStyle = '#333'; ctx.font = '12px Arial';
             ctx.fillText("🟦 F12 (Ground on Crank)", 10, 20); 
-            ctx.fillText("🟧 -F32 (Slider Reaction)", 10, 40);
+            ctx.fillText("🟧 F32 (Slider on Crank)", 10, 40);
             ctx.fillText("🟩 W2 (Gravity)", 10, 60); 
             ctx.fillText("🟥 m2*aG2 (Resultant Inertia)", 10, 80);
         }
@@ -411,20 +419,28 @@
             const html = `
                 <div class="math-box">
                     <h3>Newton-Euler Matrix Formulation</h3>
-                    <p>We establish a 9x9 matrix $[A][X] = [B]$ using rigid body accelerations.</p>
-                    <p>The unknown force vector is:<br> $[F_{12x}, F_{12y}, F_{32x}, F_{32y}, F_{14x}, F_{14y}, F_{34x}, F_{34y}, T_{12}]^T$</p>
+                    <p>We establish a 9x9 matrix $[A][X] = [B]$ using rigid body accelerations. The standard notation $F_{ij}$ represents the force exerted <strong>by</strong> link $i$ <strong>on</strong> link $j$.</p>
+                    <ul style="margin:5px 0; padding-left:20px; font-size: 0.9em; line-height:1.5;">
+                        <li><strong>$F_{12}$:</strong> Reaction force from Ground (1) on Crank (2) at $O_2$</li>
+                        <li><strong>$F_{32}$:</strong> Reaction force from Slider (3) on Crank (2) at $A$</li>
+                        <li><strong>$F_{14}$:</strong> Reaction force from Ground (1) on Lever (4) at $O_4$</li>
+                        <li><strong>$F_{34}$:</strong> Reaction force from Slider (3) on Lever (4)</li>
+                        <li><strong>$T_{12}$:</strong> Required Motor Torque from Ground (1) on Crank (2)</li>
+                    </ul>
+                    <p><em>Note: By Newton's Third Law, the force exerted by the crank on the slider is $F_{23} = -F_{32}$.</em></p>
+                    <p style="margin-top: 10px;">The unknown force vector is:<br> $[F_{12x}, F_{12y}, F_{23x}, F_{23y}, F_{14x}, F_{14y}, F_{34x}, F_{34y}, T_{12}]^T$</p>
                 </div>
                 
                 <div class="math-box">
                     <h3>Dynamic Equilibrium Equations</h3>
                     <p><strong>Link 2 (Crank):</strong><br>
-                    $\\Sigma F_x: F_{12x} - F_{32x} = m_2 a_{G2x}$<br>
-                    $\\Sigma F_y: F_{12y} - F_{32y} = m_2 a_{G2y} + m_2 g$<br>
+                    $\\Sigma F_x: F_{12x} - F_{23x} = m_2 a_{G2x}$<br>
+                    $\\Sigma F_y: F_{12y} - F_{23y} = m_2 a_{G2y} + m_2 g$<br>
                     $\\Sigma T: T_{12} + (\\vec{R}_{12} \\times \\vec{F}_{12}) + (\\vec{R}_{32} \\times \\vec{F}_{32}) = I_2 \\alpha_2$</p>
                     
                     <p><strong>Link 3 & 4 (Lever & Slider):</strong><br>
                     $\\Sigma F: \\vec{F}_{14} + \\vec{F}_{34} = m_4 \\vec{a}_{G4} + \\vec{F}_{disk}$<br>
-                    $\\Sigma T: (\\vec{R}_{14} \\times \\vec{F}_{14}) + (\\vec{R}_{34} \\times \\vec{F}_{34}) = I_4 \\alpha_4$</p>
+                    $\\Sigma T: (\\vec{R}_{14} \\times \\vec{F}_{14}) + (\\vec{R}_{34} \\times \\vec{F}_{34}) + (\\vec{R}_{C4} \\times \\vec{F}_{disk}) = I_4 \\alpha_4$</p>
                     <p><em>Constraint:</em> $F_{34x}\\cos\\psi + F_{34y}\\sin\\psi = 0$</p>
                 </div>
 
