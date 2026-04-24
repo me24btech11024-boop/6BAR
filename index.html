@@ -6,77 +6,62 @@
     <title>6-Bar Mechanism | Synthesis</title>
     
     <script>
-        window.MathJax = {
-          tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }
-        };
+        window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] } };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background-color: #f8f9fa; color: #333; }
-        
         .sidebar { width: 17%; min-width: 260px; background-color: #2c3e50; color: white; padding: 20px; display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
         .sidebar h2 { font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #4ca1af; padding-bottom: 10px; }
         .control-group { margin-bottom: 12px; }
         .control-group label { display: block; font-size: 0.85rem; margin-bottom: 4px; color: #bdc3c7; }
         .control-group input { width: 100%; padding: 6px; border: 1px solid #34495e; border-radius: 4px; background-color: #ecf0f1; color: #2c3e50; box-sizing: border-box; font-weight: bold;}
-        
         #update-btn { background-color: #27ae60; color: white; border: none; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 15px; transition: 0.3s; }
         #update-btn:hover { background-color: #2ecc71; }
-        
         .main-content { flex: 1; display: flex; flex-direction: column; background-color: white; overflow: hidden; }
         .tabs { display: flex; background-color: #ecf0f1; border-bottom: 2px solid #bdc3c7; }
         .tab-button { background-color: inherit; border: none; outline: none; cursor: pointer; padding: 14px 20px; font-size: 0.95rem; font-weight: bold; color: #7f8c8d; transition: 0.3s; text-decoration: none;}
         .tab-button:hover { background-color: #dfe6e9; color: #2c3e50; }
         .tab-button.active { background-color: white; color: #2980b9; border-bottom: 3px solid #2980b9; }
-
         .tab-content { padding: 30px 40px; flex: 1; overflow-y: auto; }
-        
         .synthesis-grid { display: flex; gap: 30px; align-items: flex-start; }
         .derivation-column { flex: 1; min-width: 400px; }
         .canvas-column { flex: 1; background: #fff; border: 1px solid #bdc3c7; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 15px; text-align: center; position: sticky; top: 0;}
-        
         .math-box { background-color: #f1f8ff; border-left: 4px solid #2980b9; padding: 15px 20px; margin-bottom: 20px; border-radius: 0 4px 4px 0; }
         .math-box h3 { margin-top: 0; color: #2c3e50; font-size: 1.1rem; }
-        .result-highlight { font-weight: bold; color: #c0392b; }
     </style>
 </head>
 <body>
-
     <aside class="sidebar">
         <h2>Synthesis Parameters</h2>
         <div class="control-group"><label>Time Ratio (Fwd:Ret)</label><input type="text" id="time-ratio" value="2:1"></div>
         <div class="control-group"><label>Base Rocker Length (mm)</label><input type="number" id="rocker-len" value="95"></div>
         <div class="control-group"><label>Rocker Swing Angle (deg)</label><input type="number" id="rocker-swing" value="60"></div>
-        
         <div class="control-group" style="margin-top: 15px; border-top: 1px solid #4ca1af; padding-top: 15px;">
             <label>Disk Radius (mm)</label><input type="number" id="radius" value="50">
         </div>
         <div class="control-group"><label>Pose B Drop (mm)</label><input type="number" id="pose-b" value="5"></div>
         <div class="control-group"><label>Pose C Drop (mm)</label><input type="number" id="pose-c" value="15"></div>
-
         <button id="update-btn" onclick="triggerSynthesis()">Synthesize Mechanism</button>
     </aside>
 
     <main class="main-content">
         <nav class="tabs">
             <a href="index.html" class="tab-button active">Synthesis & Derivation</a>
-            <a href="k.html" class="tab-button">Kinematic Analysis</a>
+            <a href="v.html" class="tab-button">Kinematic Analysis</a>
             <a href="d.html" class="tab-button">Dynamic Force Analysis</a>
             <a href="a.html" class="tab-button">Animation</a>
         </nav>
-
         <div class="tab-content">
             <h2>Analytical Synthesis of 4-Bar Quick Return</h2>
             <p>Employing the <strong>Circular Locus Method</strong> to synthesize a valid Grashof mechanism.</p>
-            
             <div class="synthesis-grid">
                 <div id="derivation-output" class="derivation-column">
                     <div style="border: 2px dashed #bdc3c7; padding: 40px; text-align: center; color: #95a5a6; border-radius: 8px;">
                         Click "Synthesize Mechanism" to calculate link lengths.
                     </div>
                 </div>
-
                 <div class="canvas-column">
                     <h3 style="margin-top:0; color:#2c3e50; font-size:1.1rem;">Generated Base Geometry</h3>
                     <canvas id="mechCanvas" width="500" height="400" style="width:100%; max-width: 500px;"></canvas>
@@ -162,20 +147,24 @@
 
             drawMechanism(O2, B1, B2, C_x, R_circle);
 
+            // Replaced span tags with native MathJax \color{#c0392b} to fix syntax blocking
             const outputHTML = `
-                <div class="math-box"><h3>Step 1: Imbalance Angle ($\\alpha$)</h3><p>$$ \\alpha = 180^\\circ \\times \\frac{${TR.toFixed(2)} - 1}{${TR.toFixed(2)} + 1} = \\mathbf{${alpha_deg.toFixed(2)}^\\circ} $$</p></div>
+                <div class="math-box"><h3>Step 1: Imbalance Angle ($\\alpha$)</h3><p>$$ \\alpha = 180^{\\circ} \\times \\frac{${TR.toFixed(2)} - 1}{${TR.toFixed(2)} + 1} = \\mathbf{${alpha_deg.toFixed(2)}^{\\circ}} $$</p></div>
                 <div class="math-box"><h3>Step 2: Locus of the Crank Pivot ($O_2$)</h3><p>$$ R_{locus} = \\frac{\\text{Chord}/2}{\\sin(\\alpha)} = \\mathbf{${R_circle.toFixed(2)} \\text{ mm}} $$</p></div>
                 <div class="math-box"><h3>Step 3: Dimensional Synthesis (Link Lengths)</h3>
-                    <p>$$ L_2 \\text{ (Crank)} = \\mathbf{<span class="result-highlight">${L2.toFixed(2)} \\text{ mm}</span>} $$</p>
-                    <p>$$ L_3 \\text{ (Coupler)} = \\mathbf{<span class="result-highlight">${L3.toFixed(2)} \\text{ mm}</span>} $$</p>
-                    <p>$$ L_1 \\text{ (Ground)} = \\mathbf{<span class="result-highlight">${L1.toFixed(2)} \\text{ mm}</span>} $$</p>
+                    <p>$$ L_2 \\text{ (Crank)} = \\color{#c0392b}{\\mathbf{${L2.toFixed(2)} \\text{ mm}}} $$</p>
+                    <p>$$ L_3 \\text{ (Coupler)} = \\color{#c0392b}{\\mathbf{${L3.toFixed(2)} \\text{ mm}}} $$</p>
+                    <p>$$ L_1 \\text{ (Ground)} = \\color{#c0392b}{\\mathbf{${L1.toFixed(2)} \\text{ mm}}} $$</p>
                 </div>
                 <div class="math-box" style="border-left-color: ${is_grashof ? '#27ae60' : '#c0392b'};"><h3>Step 4: Grashof Condition</h3>
                     <p>Continuous Rotation Possible: <strong>${is_grashof ? 'YES' : 'NO'}</strong></p>
                 </div>
             `;
             document.getElementById('derivation-output').innerHTML = outputHTML;
-            if (window.MathJax) MathJax.typesetPromise();
+            if (window.MathJax) {
+                MathJax.typesetClear([document.getElementById('derivation-output')]);
+                MathJax.typesetPromise([document.getElementById('derivation-output')]);
+            }
         }
         window.onload = triggerSynthesis;
     </script>
