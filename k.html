@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6-Bar Mechanism | Kinematics</title>
+    
+    <script>
+        window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background-color: #f8f9fa; color: #333; }
+        
+        .sidebar { width: 17%; min-width: 260px; background-color: #2c3e50; color: white; padding: 20px; display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
+        .sidebar h2 { font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #4ca1af; padding-bottom: 10px; }
+        .control-group { margin-bottom: 12px; }
+        .control-group label { display: block; font-size: 0.85rem; margin-bottom: 4px; color: #bdc3c7; }
+        .control-group input { width: 100%; padding: 6px; border: 1px solid #34495e; border-radius: 4px; background-color: #ecf0f1; color: #2c3e50; box-sizing: border-box; font-weight: bold;}
+        .checkbox-group { margin-top: 10px; display: flex; align-items: center; color: #bdc3c7; font-size: 0.85rem;}
+        .checkbox-group input { width: auto; margin-right: 8px;}
+        
+        .main-content { flex: 1; display: flex; flex-direction: column; background-color: white; overflow: hidden; }
+        .tabs { display: flex; background-color: #ecf0f1; border-bottom: 2px solid #bdc3c7; }
+        .tab-button { background-color: inherit; border: none; outline: none; cursor: pointer; padding: 14px 20px; font-size: 0.95rem; font-weight: bold; color: #7f8c8d; transition: 0.3s; text-decoration: none;}
+        .tab-button:hover { background-color: #dfe6e9; color: #2c3e50; }
+        .tab-button.active { background-color: white; color: #2980b9; border-bottom: 3px solid #2980b9; }
+
+        .tab-content { padding: 20px 25px; flex: 1; overflow-y: auto; display: flex; flex-direction: column;}
+        
+        .kinematics-grid { display: flex; gap: 25px; align-items: flex-start; flex: 1;}
+        .derivation-column { flex: 1.2; min-width: 400px; height: 100%; overflow-y: auto; padding-right: 10px;}
+        .canvas-column { flex: 2; display: flex; flex-direction: column; gap: 20px;}
+        
+        .math-box { background-color: #f1f8ff; border-left: 4px solid #2980b9; padding: 15px 20px; margin-bottom: 15px; border-radius: 0 4px 4px 0; font-size: 0.95rem;}
+        .math-box h3 { margin-top: 0; color: #2c3e50; font-size: 1.05rem; }
+        
+        .canvas-row { display: flex; gap: 10px; width: 100%; justify-content: space-between;}
+        .canvas-container { flex: 1; background: #fff; border: 1px solid #bdc3c7; border-radius: 4px; padding: 5px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
+        canvas { width: 100%; height: auto; background: #ffffff; border: 1px solid #ecf0f1;}
+        
+        .slider-controls { background: #ecf0f1; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #bdc3c7;}
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h2>Kinematic Parameters</h2>
+        <div class="control-group"><label>Crank Radius O2-A (mm)</label><input type="number" id="crank" value="30" onchange="updateKinematics()"></div>
+        <div class="control-group"><label>Ground O2-O4 (mm)</label><input type="number" id="dfix" value="60" onchange="updateKinematics()"></div>
+        <div class="control-group"><label>Slider Arm O4-B (mm)</label><input type="number" id="larm" value="25" onchange="updateKinematics()"></div>
+        
+        <div class="control-group" style="margin-top: 15px; border-top: 1px solid #4ca1af; padding-top: 15px;">
+            <label>Input Velocity $\omega$ (rad/s)</label><input type="number" id="omega" value="1.0" onchange="updateKinematics()">
+        </div>
+        <div class="control-group">
+            <label>Input Accel $\alpha$ (rad/s²)</label><input type="number" id="alpha" value="0.0" onchange="updateKinematics()">
+        </div>
+
+        <div style="margin-top: 15px; border-top: 1px solid #4ca1af; padding-top: 15px;">
+            <label style="font-size: 0.85rem; color: #bdc3c7; margin-bottom:5px; display:block;">Vector Overlays</label>
+            <div class="checkbox-group"><input type="checkbox" id="show-vel" checked onchange="updateKinematics()"> Show Velocity (v)</div>
+            <div class="checkbox-group"><input type="checkbox" id="show-acc" checked onchange="updateKinematics()"> Show Acceleration (a)</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <nav class="tabs">
+            <a href="index.html" class="tab-button">Synthesis & Derivation</a>
+            <a href="v.html" class="tab-button active">Kinematic Analysis</a>
+            <a href="d.html" class="tab-button">Dynamic Force Analysis</a>
+            <a href="a.html" class="tab-button">Animation</a>
+        </nav>
+
+        <div class="tab-content">
+            <div class="slider-controls">
+                <label style="font-weight: bold; color: #2c3e50;">Explore Mechanism Kinematics at Crank Angle ($\phi$): <span id="phi-display" style="color:#d35400;">0.0</span>°</label>
+                <input type="range" id="phi-slider" min="0" max="360" step="0.1" value="0" style="width: 100%; margin-top: 10px;" oninput="updateKinematics()">
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button onclick="snapTo(0)" style="padding: 6px 12px; cursor:pointer;">Snap to A (0°)</button>
+                    <button onclick="snapTo(45)" style="padding: 6px 12px; cursor:pointer;">Snap to B (45°)</button>
+                    <button onclick="snapTo(90)" style="padding: 6px 12px; cursor:pointer;">Snap to C (90°)</button>
+                </div>
+            </div>
+
+            <div class="kinematics-grid">
+                <div id="derivation-output" class="derivation-column"></div>
+
+                <div class="canvas-column">
+                    <h3 style="margin:0; color:#2c3e50; text-align:center;">Whitworth mechanism: position, velocity, and acceleration diagrams</h3>
+                    <div class="canvas-row">
+                        <div class="canvas-container"><canvas id="posCanvas" width="300" height="200"></canvas></div>
+                        <div class="canvas-container"><canvas id="velCanvas" width="300" height="200"></canvas></div>
+                        <div class="canvas-container"><canvas id="accCanvas" width="300" height="200"></canvas></div>
+                    </div>
+
+                    <h3 style="margin:0; margin-top:10px; color:#2c3e50; text-align:center;">Velocity and acceleration of center of circular arc / disc center</h3>
+                    <div class="canvas-row" style="justify-content: center; gap: 30px;">
+                        <div class="canvas-container" style="max-width: 350px;"><canvas id="discVelCanvas" width="350" height="350"></canvas></div>
+                        <div class="canvas-container" style="max-width: 350px;"><canvas id="discAccCanvas" width="350" height="350"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Exact mathematical model matching v.py
+        let MECH = {};
+        const x_d = -35.0, r_p = 18.0, beta_body = 150.0 * Math.PI / 180.0, R_DISC = 50.0;
+        const a_c = (5 - 2025*(5.0/4050))/45, b_c = 5.0/4050;
+
+        function initMechBase() {
+            const r_crank = parseFloat(document.getElementById('crank').value);
+            const d_fix = parseFloat(document.getElementById('dfix').value);
+            const l_arm = parseFloat(document.getElementById('larm').value);
+            
+            let By_max = -9999, By_min = 9999;
+            let p_top = 0, p_bot = 0;
+            
+            // EXACT 7200 points resolution to match v.py linspace
+            for(let i = 0; i < 7200; i++) {
+                let p = i * (Math.PI * 2) / 7200;
+                let Ay = r_crank * Math.sin(p), Ax = r_crank * Math.cos(p);
+                let psi = Math.atan2(Ay, Ax - d_fix);
+                let By = l_arm * Math.sin(psi);
+                if(By > By_max) { By_max = By; p_top = p; }
+                if(By < By_min) { By_min = By; p_bot = p; }
+            }
+
+            let P_top_x = x_d + r_p * Math.cos(beta_body);
+            let P_top_y = By_max + r_p * Math.sin(beta_body);
+            let P_bot_x = x_d + r_p * Math.cos(beta_body - Math.PI/2);
+            let P_bot_y = By_min + r_p * Math.sin(beta_body - Math.PI/2);
+
+            let dx = P_bot_x - P_top_x, dy = P_bot_y - P_top_y;
+            let perp_x = -dy / Math.hypot(dx, dy), perp_y = dx / Math.hypot(dx, dy);
+            
+            MECH.O5x = ((P_top_x + P_bot_x)/2) - 20.0 * perp_x;
+            MECH.O5y = ((P_top_y + P_bot_y)/2) - 20.0 * perp_y;
+            MECH.L5 = Math.hypot(MECH.O5x - P_top_x, MECH.O5y - P_top_y);
+            MECH.rc = r_crank; MECH.df = d_fix; MECH.la = l_arm;
+            MECH.phi_start = p_top;
+            
+            let fwd_arc = (p_bot - p_top) % (2*Math.PI);
+            if (fwd_arc < 0) fwd_arc += 2*Math.PI;
+            MECH.fwd_arc = fwd_arc;
+        }
+
+        // Bisection Solver for Exact Geometry
+        function theta_on_forward_stroke(phi) {
+            let Ay = MECH.rc * Math.sin(phi), Ax = MECH.rc * Math.cos(phi);
+            let psi = Math.atan2(Ay, Ax - MECH.df);
+            let Cy = MECH.la * Math.sin(psi);
+            let dx_c = x_d - MECH.O5x, dy_c = Cy - MECH.O5y;
+            let K = (MECH.L5**2 - dx_c**2 - dy_c**2 - r_p**2) / (2 * r_p);
+            let alpha = Math.atan2(dy_c, dx_c) + Math.acos(Math.max(-1, Math.min(1, K/Math.hypot(dx_c, dy_c))));
+            return Math.max(0, Math.min(90, (beta_body - alpha) * 180 / Math.PI));
+        }
+
+        function solve_phi_for_target(target_deg) {
+            let lo = MECH.phi_start, hi = MECH.phi_start + MECH.fwd_arc;
+            let f_lo = theta_on_forward_stroke(lo) - target_deg;
+            
+            for(let i=0; i<80; i++) {
+                let mid = 0.5 * (lo + hi);
+                let f_mid = theta_on_forward_stroke(mid) - target_deg;
+                if(Math.abs(f_mid) < 1e-12) return (mid % (2*Math.PI)) * 180 / Math.PI;
+                if(f_lo * f_mid <= 0.0) { hi = mid; } else { lo = mid; f_lo = f_mid; }
+            }
+            return ((0.5*(lo+hi)) % (2*Math.PI)) * 180 / Math.PI;
+        }
+
+        function snapTo(target_theta) {
+            initMechBase();
+            document.getElementById('phi-slider').value = solve_phi_for_target(target_theta);
+            updateKinematics();
+        }
+
+        function updateKinematics() {
+            initMechBase();
+            const phi_deg = parseFloat(document.getElementById('phi-slider').value);
+            document.getElementById('phi-display').innerText = phi_deg.toFixed(1);
+            
+            const phi = phi_deg * Math.PI / 180.0;
+            const omega = parseFloat(document.getElementById('omega').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            
+            // --- 1. Base Kinematics ---
+            const Ax = MECH.rc * Math.cos(phi), Ay = MECH.rc * Math.sin(phi);
+            const D_sq = MECH.rc**2 + MECH.df**2 - 2 * MECH.rc * MECH.df * Math.cos(phi);
+            const psi = Math.atan2(Ay, Ax - MECH.df);
+            
+            const f = MECH.rc * (MECH.rc - MECH.df * Math.cos(phi)) / D_sq;
+            const fp = MECH.rc * MECH.df * Math.sin(phi) * (MECH.df**2 - MECH.rc**2) / (D_sq**2);
+            const psi_dot = f * omega;
+            const psi_ddot = f * alpha + fp * omega**2;
+            
+            const vAx = MECH.rc * omega * -Math.sin(phi), vAy = MECH.rc * omega * Math.cos(phi);
+            const aAx = MECH.rc * alpha * -Math.sin(phi) - MECH.rc * omega**2 * Math.cos(phi);
+            const aAy = MECH.rc * alpha * Math.cos(phi) - MECH.rc * omega**2 * Math.sin(phi);
+
+            const Bx = MECH.df + MECH.la * Math.cos(psi), By = MECH.la * Math.sin(psi);
+            const vBx = MECH.la * psi_dot * -Math.sin(psi), vBy = MECH.la * psi_dot * Math.cos(psi);
+            const aBx = MECH.la * (psi_ddot * -Math.sin(psi) - psi_dot**2 * Math.cos(psi));
+            const aBy = MECH.la * (psi_ddot * Math.cos(psi) - psi_dot**2 * Math.sin(psi));
+            
+            const Cx = x_d, Cy = By;
+            const vCx = 0, vCy = vBy;
+            const aCx = 0, aCy = aBy;
+
+            // --- 2. Disk Kinematics ---
+            let dx_c = Cx - MECH.O5x, dy_c = Cy - MECH.O5y;
+            let R_c = Math.hypot(dx_c, dy_c);
+            let K = (MECH.L5**2 - dx_c**2 - dy_c**2 - r_p**2) / (2 * r_p);
+            let alpha_ang = Math.atan2(dy_c, dx_c) + Math.acos(Math.max(-1, Math.min(1, K/R_c)));
+            let theta_rad = beta_body - alpha_ang;
+            let theta_deg = Math.max(0, Math.min(90, theta_rad * 180 / Math.PI));
+            theta_rad = theta_deg * Math.PI / 180;
+
+            let q = beta_body - theta_rad;
+            let Px = Cx + r_p * Math.cos(q), Py = Cy + r_p * Math.sin(q);
+            
+            let Rx = Px - MECH.O5x, Ry = Py - MECH.O5y;
+            let P_thetax = r_p * Math.sin(q), P_thetay = -r_p * Math.cos(q);
+            let denom = Rx * P_thetax + Ry * P_thetay;
+            
+            let theta_dot = -(Ry * vCy) / denom;
+            let vPx = vCx + P_thetax * theta_dot, vPy = vCy + P_thetay * theta_dot;
+            
+            let P_ttx = -r_p * Math.cos(q), P_tty = -r_p * Math.sin(q);
+            let theta_ddot = -( (vPx**2 + vPy**2) + (Ry * aCy) + (Rx*P_ttx + Ry*P_tty)*theta_dot**2 ) / denom;
+            
+            let aPx = aCx + P_thetax * theta_ddot + P_ttx * theta_dot**2;
+            let aPy = aCy + P_thetay * theta_ddot + P_tty * theta_dot**2;
+
+            let drop = a_c * theta_deg + b_c * theta_deg**2;
+            let d_drop = (a_c + 2*b_c*theta_deg) * (180/Math.PI);
+            let dd_drop = 2*b_c * Math.pow(180/Math.PI, 2);
+            
+            let v_drop = -d_drop * theta_dot;
+            let a_drop = -(d_drop * theta_ddot + dd_drop * theta_dot**2);
+
+            const PTS = { A: [Ax, Ay], B: [Bx, By], C: [Cx, Cy], P: [Px, Py] };
+            const VELS = { A: [vAx, vAy], B: [vBx, vBy], C: [vCx, vCy], P: [vPx, vPy] };
+            const ACCS = { A: [aAx, aAy], B: [aBx, aBy], C: [aCx, aCy], P: [aPx, aPy] };
+
+            updateMathHTML(phi_deg, omega, alpha, psi_dot, psi_ddot, theta_deg, theta_dot, theta_ddot, drop, v_drop, a_drop);
+            
+            drawMechDiagram('posCanvas', "Position diagram", PTS, VELS, ACCS, 'pos');
+            drawMechDiagram('velCanvas', "Velocity diagram", PTS, VELS, ACCS, 'vel');
+            drawMechDiagram('accCanvas', "Acceleration diagram", PTS, VELS, ACCS, 'acc');
+            
+            drawDiscDiagram('discVelCanvas', "50 mm disc-center velocity", theta_deg, drop, v_drop, a_drop, 'vel');
+            drawDiscDiagram('discAccCanvas', "50 mm disc-center acceleration", theta_deg, drop, v_drop, a_drop, 'acc');
+        }
+
+        function updateMathHTML(phi, w, a, p_dot, p_ddot, th, th_dot, th_ddot, drop, v_drop, a_drop) {
+            const html = `
+                <div class="math-box">
+                    <h3>1. Primary Loop: Inverted Slider-Crank</h3>
+                    <p>Using complex vector notation, the position loop for crank $O_2A$ and lever $O_4B$ is:</p>
+                    <p>$$ r_{crank} e^{i\\phi} = d_{fix} + r_{arm} e^{i\\psi} $$</p>
+                    <p>Taking the first time derivative separates the sliding velocity $\\dot{r}_{arm}$ and the angular velocity $\\dot{\\psi}$:</p>
+                    <p>$$ i \\omega_{in} r_{crank} e^{i\\phi} = \\dot{r}_{arm} e^{i\\psi} + i \\dot{\\psi} r_{arm} e^{i\\psi} $$</p>
+                    <p>$$ \\dot{\\psi} = \\left[ \\frac{r_{crank}(r_{crank} - d_{fix} \\cos\\phi)}{D^2} \\right] \\omega_{in} = \\color{#c0392b}{\\mathbf{${p_dot.toFixed(3)} \\text{ rad/s}}} $$</p>
+                    <p>The second derivative introduces centripetal ($\\dot{\\psi}^2$) and Coriolis ($2\\dot{r}_{arm}\\dot{\\psi}$) acceleration terms:</p>
+                    <p>$$ (i \\alpha_{in} - \\omega_{in}^2) r_{crank} e^{i\\phi} = (\\ddot{r}_{arm} - r_{arm}\\dot{\\psi}^2)e^{i\\psi} + i(r_{arm}\\ddot{\\psi} + 2\\dot{r}_{arm}\\dot{\\psi})e^{i\\psi} $$</p>
+                    <p>$$ \\ddot{\\psi} = f(\\phi)\\alpha_{in} + f'(\\phi)\\omega_{in}^2 = \\color{#c0392b}{\\mathbf{${p_ddot.toFixed(3)} \\text{ rad/s}^2}} $$</p>
+                </div>
+                
+                <div class="math-box">
+                    <h3>2. Secondary Loop: Disk Rotation Guide</h3>
+                    <p>The slider $C$ translates vertically ($v_{Cy} = L_{arm} \\dot{\\psi} \\cos\\psi$). The offset pin $P$ rotates with the disk. Its vector loop from ground $O_5$ is constrained by the rigid link $L_5$:</p>
+                    <p>$$ \\vec{R} = \\vec{P} - \\vec{O_5} \\implies \\vec{R} \\cdot \\vec{R} = L_5^2 $$</p>
+                    <p>Differentiating with respect to time gives $\\vec{R} \\cdot \\vec{v}_P = 0$. Substituting $\\vec{v}_P = \\vec{v}_C + \\dot{\\theta} \\vec{P}_{\\theta}$ isolates the rotation rate:</p>
+                    <p>$$ \\vec{R} \\cdot (\\vec{v}_C + \\dot{\\theta} \\vec{P}_{\\theta}) = 0 \\implies \\dot{\\theta} = \\frac{-(\\vec{R} \\cdot \\vec{v}_C)}{\\vec{R} \\cdot \\vec{P}_{\\theta}} = \\color{#c0392b}{\\mathbf{${th_dot.toFixed(3)} \\text{ rad/s}}} $$</p>
+                    <p>Differentiating again yields $(\\vec{v}_P \\cdot \\vec{v}_P) + \\vec{R} \\cdot \\vec{a}_P = 0$. Substituting the acceleration components solves for $\\ddot{\\theta}$:</p>
+                    <p>$$ \\ddot{\\theta} = \\frac{-(||\\vec{v}_P||^2 + \\vec{R} \\cdot \\vec{a}_C + (\\vec{R} \\cdot \\vec{P}_{\\theta\\theta})\\dot{\\theta}^2)}{\\vec{R} \\cdot \\vec{P}_{\\theta}} = \\color{#c0392b}{\\mathbf{${th_ddot.toFixed(3)} \\text{ rad/s}^2}} $$</p>
+                </div>
+
+                <div class="math-box" style="border-left-color: #27ae60;">
+                    <h3>3. Instantaneous Output State</h3>
+                    <p>At mathematically precise crank angle $\\phi = ${phi.toFixed(1)}^\\circ$:</p>
+                    <ul style="margin:5px 0; padding-left:20px; line-height:1.6;">
+                        <li>Rotational Position $\\theta$: <strong>${th.toFixed(2)}^\\circ</strong></li>
+                        <li>Translational Drop: <strong>${drop.toFixed(2)} mm</strong></li>
+                        <li>Disc Center Velocity: <strong>${v_drop.toFixed(2)} mm/s</strong></li>
+                        <li>Disc Center Acceleration: <strong>${a_drop.toFixed(2)} mm/s^2</strong></li>
+                    </ul>
+                </div>
+            `;
+            document.getElementById('derivation-output').innerHTML = html;
+            if (window.MathJax) MathJax.typesetPromise();
+        }
+
+        // --- ACCURATE V.PY CANVAS LOGIC ---
+        function drawMechDiagram(canvasId, title, PTS, VELS, ACCS, mode) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = "white"; ctx.fillRect(10, 10, 140, 22);
+            ctx.strokeStyle = "#ddd"; ctx.strokeRect(10, 10, 140, 22);
+            ctx.fillStyle = "black"; ctx.font = "bold 12px Arial"; ctx.fillText(title, 15, 26);
+
+            ctx.save();
+            ctx.translate(canvas.width/2 + 20, canvas.height/2 + 10);
+            
+            const S = canvas.width / 165; 
+            ctx.scale(S, -S); 
+            
+            ctx.strokeStyle = '#ecf0f1'; ctx.lineWidth = 1/S; ctx.setLineDash([3,3]);
+            for(let i = -100; i <= 100; i+=25) {
+                ctx.beginPath(); ctx.moveTo(i, -100); ctx.lineTo(i, 100); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-100, i); ctx.lineTo(100, i); ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            ctx.strokeStyle = '#566573'; ctx.lineWidth = 2.0/S;
+            ctx.beginPath(); ctx.moveTo(x_d, -45); ctx.lineTo(x_d, 45); ctx.stroke();
+
+            const c_crank = '#d62728', c_arm = '#ffbf00', c_yoke = '#17becf', c_conrod = '#ff7f0e', c_guide = '#9467bd';
+            const c_pA = '#2ca02c', c_pB = '#ffbf00', c_pC = '#17becf', c_pP = '#ff7f0e';
+
+            ctx.globalAlpha = (mode === 'pos') ? 1.0 : 0.35; 
+            ctx.lineWidth = (mode === 'pos') ? 2.5/S : 1.5/S; 
+            const drawL = (x1,y1, x2,y2, color) => { ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.strokeStyle=color; ctx.stroke(); };
+            drawL(0, 0, PTS.A[0], PTS.A[1], c_crank);
+            drawL(MECH.df, 0, PTS.B[0], PTS.B[1], c_arm);
+            drawL(PTS.B[0], PTS.B[1], PTS.C[0], PTS.C[1], c_yoke);
+            drawL(PTS.C[0], PTS.C[1], PTS.P[0], PTS.P[1], c_conrod);
+            drawL(MECH.O5x, MECH.O5y, PTS.P[0], PTS.P[1], c_guide);
+
+            const jSize = (mode === 'pos') ? 3.5/S : 2.5/S;
+            const drawJ = (x, y, color) => { ctx.beginPath(); ctx.arc(x, y, jSize, 0, 2*Math.PI); ctx.fillStyle=color; ctx.fill(); };
+            drawJ(0, 0, c_crank); drawJ(MECH.df, 0, c_crank); drawJ(MECH.O5x, MECH.O5y, c_guide);
+            drawJ(PTS.A[0], PTS.A[1], c_pA); drawJ(PTS.B[0], PTS.B[1], c_pB);
+            drawJ(PTS.C[0], PTS.C[1], c_pC); drawJ(PTS.P[0], PTS.P[1], c_pP);
+
+            ctx.globalAlpha = 1.0;
+            const drawTxt = (x, y, text, color, ox, oy) => {
+                ctx.save(); ctx.translate(x, y); ctx.scale(1/S, -1/S);
+                ctx.fillStyle = color; ctx.font = "9px Arial"; ctx.fillText(text, ox, oy); ctx.restore();
+            };
+            if (mode === 'pos') {
+                drawTxt(0, 0, 'O2', c_crank, 4, 8); drawTxt(MECH.df, 0, 'O4', c_crank, 4, -4);
+                drawTxt(MECH.O5x, MECH.O5y, 'O5', c_guide, 4, 8); drawTxt(PTS.A[0], PTS.A[1], 'A', c_pA, 4, -4);
+                drawTxt(PTS.B[0], PTS.B[1], 'B', c_pB, 4, -4); drawTxt(PTS.C[0], PTS.C[1], 'C', c_pC, 4, -4);
+                drawTxt(PTS.P[0], PTS.P[1], 'P', c_pP, -8, -8);
+            }
+
+            const drawVec = (p, v, name, color, scale) => {
+                const vx = v[0]*scale, vy = v[1]*scale;
+                ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(p[0]+vx, p[1]+vy);
+                ctx.strokeStyle=color; ctx.lineWidth=1.5/S; ctx.stroke();
+                
+                const mag = Math.hypot(v[0], v[1]);
+                if (mag > 0.001) {
+                    const angle = Math.atan2(vy, vx);
+                    const hl = 3.0, hw = 1.1; 
+                    ctx.beginPath(); ctx.moveTo(p[0]+vx, p[1]+vy);
+                    ctx.lineTo(p[0]+vx - hl*Math.cos(angle) + hw*Math.sin(angle), p[1]+vy - hl*Math.sin(angle) - hw*Math.cos(angle));
+                    ctx.lineTo(p[0]+vx - hl*Math.cos(angle) - hw*Math.sin(angle), p[1]+vy - hl*Math.sin(angle) + hw*Math.cos(angle));
+                    ctx.fillStyle=color; ctx.fill();
+                }
+                drawTxt(p[0]+vx, p[1]+vy, `${name} ${mag.toFixed(2)}`, color, 4, -4);
+            };
+
+            if(mode === 'vel' && document.getElementById('show-vel').checked) {
+                drawVec(PTS.A, VELS.A, 'A', c_pA, 1.0); drawVec(PTS.B, VELS.B, 'B', c_pB, 1.0);
+                drawVec(PTS.C, VELS.C, 'C', c_pC, 1.0); drawVec(PTS.P, VELS.P, 'P', c_pP, 1.0);
+            }
+            if(mode === 'acc' && document.getElementById('show-acc').checked) {
+                drawVec(PTS.A, ACCS.A, 'A', c_pA, 0.25); drawVec(PTS.B, ACCS.B, 'B', c_pB, 0.25);
+                drawVec(PTS.C, ACCS.C, 'C', c_pC, 0.25); drawVec(PTS.P, ACCS.P, 'P', c_pP, 0.25);
+            }
+            ctx.restore();
+        }
+
+        function drawDiscDiagram(canvasId, title, th_deg, drop, v_drop, a_drop, mode) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = "black"; ctx.font = "14px Arial"; ctx.fillText(title, canvas.width/2 - 100, 20);
+
+            ctx.save();
+            ctx.translate(canvas.width/2, canvas.height/2 + 20);
+            
+            const S = canvas.width / 124; 
+            ctx.scale(S, -S); 
+            
+            ctx.strokeStyle = '#ecf0f1'; ctx.lineWidth = 1/S; ctx.setLineDash([3,3]);
+            for(let i = -100; i <= 100; i+=20) {
+                ctx.beginPath(); ctx.moveTo(i, -100); ctx.lineTo(i, 100); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-100, i); ctx.lineTo(100, i); ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            
+            ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.0/S;
+            ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(0, -30); ctx.stroke();
+            
+            const target_drops = [0, 5, 15];
+            ctx.strokeStyle = '#7fb3d5'; ctx.lineWidth = 1.0/S; ctx.globalAlpha = 0.28;
+            for(let td of target_drops) {
+                ctx.beginPath(); ctx.arc(0, -td, R_DISC, 0, 2*Math.PI); ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+            
+            const drawTxt = (x, y, text, color, ox, oy) => {
+                ctx.save(); ctx.translate(x, y); ctx.scale(1/S, -1/S);
+                ctx.fillStyle = color; ctx.font = "10px Arial"; ctx.fillText(text, ox, oy); ctx.restore();
+            };
+
+            for(let i=0; i<3; i++) {
+                ctx.beginPath(); ctx.arc(0, -target_drops[i], 3.5/S, 0, 2*Math.PI);
+                ctx.fillStyle = '#1f77b4'; ctx.fill();
+                drawTxt(0, -target_drops[i], `theta ${[0,45,90][i]} deg`, '#1f77b4', 6, -3);
+            }
+            
+            const mag = (mode === 'vel') ? v_drop : a_drop;
+            const scale = (mode === 'vel') ? 0.65 : 0.12;
+            const symbol = (mode === 'vel') ? '|v|' : '|a|';
+            const color = '#d62728';
+
+            const checkId = (mode === 'vel') ? 'show-vel' : 'show-acc';
+            if (document.getElementById(checkId).checked && Math.abs(mag) > 0.01) {
+                const len = mag * scale;
+                ctx.beginPath(); ctx.moveTo(0, -drop); ctx.lineTo(0, -drop + len);
+                ctx.strokeStyle = color; ctx.lineWidth = 1.5/S; ctx.stroke();
+                
+                ctx.beginPath(); ctx.moveTo(0, -drop + len);
+                ctx.lineTo(-2/S, -drop + len - Math.sign(len)*3/S);
+                ctx.lineTo( 2/S, -drop + len - Math.sign(len)*3/S);
+                ctx.fillStyle = color; ctx.fill();
+            }
+            drawTxt(0, -drop, `${symbol}=${Math.abs(mag).toFixed(3)}`, '#1f77b4', 6, 8);
+
+            ctx.restore();
+        }
+
+        window.onload = updateKinematics;
+    </script>
+</body>
+</html>
