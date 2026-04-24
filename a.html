@@ -13,9 +13,8 @@
         .control-group label { display: block; font-size: 0.85rem; margin-bottom: 4px; color: #bdc3c7; }
         .control-group input { width: 100%; padding: 6px; border: 1px solid #34495e; border-radius: 4px; background-color: #ecf0f1; color: #2c3e50; box-sizing: border-box; font-weight:bold;}
         
-        #update-btn, #play-btn { background-color: #2980b9; color: white; border: none; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 10px; transition: 0.3s; width: 100%;}
-        #update-btn:hover, #play-btn:hover { background-color: #3498db; }
-        #play-btn { background-color: #27ae60; margin-bottom: 20px;}
+        #play-btn { background-color: #27ae60; color: white; border: none; padding: 12px; font-size: 1rem; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 10px; margin-bottom: 20px; transition: 0.3s; width: 100%;}
+        #play-btn:hover { background-color: #2ecc71; }
         #play-btn.paused { background-color: #e67e22; }
 
         .main-content { flex: 1; display: flex; flex-direction: column; background-color: white; overflow: hidden; }
@@ -32,11 +31,16 @@
 <body>
 
     <aside class="sidebar">
-        <h2>Animation Controls</h2>
-        <div class="control-group"><label>Crank Radius (mm)</label><input type="number" id="crank" value="30"></div>
-        <div class="control-group"><label>Ground Dist O2-O4 (mm)</label><input type="number" id="dfix" value="60"></div>
-        <div class="control-group"><label>Slider Arm O4-B (mm)</label><input type="number" id="larm" value="25"></div>
-        <div class="control-group"><label>Slider Column X (mm)</label><input type="number" id="xd" value="-35"></div>
+        <h2>Task Specifications</h2>
+        <div class="control-group"><label>Time Ratio</label><input type="number" id="tr" value="2.0" step="0.05" onchange="updateFromTR()"></div>
+        <div class="control-group"><label>Target Drop B (45°) (mm)</label><input type="number" id="dropB" value="5" step="0.5" onchange="initMechanism()"></div>
+        <div class="control-group"><label>Target Drop C (90°) (mm)</label><input type="number" id="dropC" value="15" step="0.5" onchange="initMechanism()"></div>
+
+        <h2 style="margin-top: 15px; border-top: 1px solid #4ca1af; padding-top: 15px;">Animation Controls</h2>
+        <div class="control-group"><label>Crank Radius (mm)</label><input type="number" id="crank" value="30" onchange="updateFromGeom()"></div>
+        <div class="control-group"><label>Ground Dist O2-O4 (mm)</label><input type="number" id="dfix" value="60" onchange="updateFromGeom()"></div>
+        <div class="control-group"><label>Slider Arm O4-B (mm)</label><input type="number" id="larm" value="25" onchange="initMechanism()"></div>
+        <div class="control-group"><label>Slider Column X (mm)</label><input type="number" id="xd" value="-35" onchange="initMechanism()"></div>
         
         <div class="control-group" style="margin-top: 15px; border-top: 1px solid #4ca1af; padding-top: 15px;">
             <label>Animation Speed</label>
@@ -44,7 +48,6 @@
         </div>
 
         <button id="play-btn" onclick="togglePlay()">Pause Animation</button>
-        <button id="update-btn" onclick="initMechanism()">Update Geometry</button>
     </aside>
 
     <main class="main-content">
@@ -63,7 +66,6 @@
     </main>
 
     <script>
-        // Exact a.py Animation Logic
         let d_fix, r_crank, L_arm, x_d;
         const L_lever = 95.0;
         const r_p = 18.0;
@@ -71,8 +73,9 @@
         let O5 = {x: 0, y: 0};
         let L5 = 0;
         
-        const a_c = (5 - 2025*(5.0/4050))/45;
-        const b_c = 5.0/4050;
+        // Dynamic Drop Coefficients
+        let drop_B = 5.0, drop_C = 15.0;
+        let a_c = 0, b_c = 0;
 
         let phi = 0, isPlaying = true, animationId;
         let By_max, By_min, phi_start, phi_bottom, fwd_arc, ret_arc;
@@ -84,6 +87,34 @@
             isPlaying ? btn.classList.remove('paused') : btn.classList.add('paused');
         }
 
+        // Two-Way Binding: Time Ratio <-> Geometry
+        function updateFromTR() {
+            let tr = parseFloat(document.getElementById('tr').value);
+            if (tr <= 1.0) { tr = 1.01; document.getElementById('tr').value = tr; }
+            let current_dfix = parseFloat(document.getElementById('dfix').value);
+            
+            let alpha_deg = 90 * (tr - 1) / (tr + 1);
+            let new_crank = current_dfix * Math.sin(alpha_deg * Math.PI / 180);
+            document.getElementById('crank').value = new_crank.toFixed(2);
+            initMechanism();
+        }
+
+        function updateFromGeom() {
+            let current_crank = parseFloat(document.getElementById('crank').value);
+            let current_dfix = parseFloat(document.getElementById('dfix').value);
+            
+            // Prevent mechanism breaking (crank must be smaller than ground for crank-rocker)
+            if (current_crank >= current_dfix) { 
+                current_crank = current_dfix - 0.1; 
+                document.getElementById('crank').value = current_crank.toFixed(2); 
+            }
+            
+            let alpha_deg = Math.asin(current_crank / current_dfix) * 180 / Math.PI;
+            let new_tr = (180 + 2 * alpha_deg) / (180 - 2 * alpha_deg);
+            document.getElementById('tr').value = new_tr.toFixed(2);
+            initMechanism();
+        }
+
         function initMechanism() {
             if(animationId) cancelAnimationFrame(animationId);
             
@@ -91,6 +122,12 @@
             r_crank = parseFloat(document.getElementById('crank').value);
             L_arm = parseFloat(document.getElementById('larm').value);
             x_d = parseFloat(document.getElementById('xd').value);
+
+            // Recalculate drop polynomial coefficients based on user targets
+            drop_B = parseFloat(document.getElementById('dropB').value);
+            drop_C = parseFloat(document.getElementById('dropC').value);
+            b_c = (drop_C - 2 * drop_B) / 4050.0;
+            a_c = (drop_B - 2025.0 * b_c) / 45.0;
 
             By_max = -99999; By_min = 99999;
             for(let p = 0; p < Math.PI * 2; p += 0.005) {
@@ -164,20 +201,14 @@
                 const drawJoint = (x, y, c, sq) => { ctx.beginPath(); sq ? ctx.rect(mapX(x)-4, mapY(y)-4, 8, 8) : ctx.arc(mapX(x), mapY(y), 4.5, 0, 2*Math.PI); ctx.fillStyle=c; ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=1.2; ctx.stroke(); };
                 drawJoint(0, 0, '#ff6b6b', true); drawJoint(d_fix, 0, '#ff6b6b', true); drawJoint(O5.x, O5.y, '#c084fc', true); drawJoint(Ax, Ay, '#06d6a0'); drawJoint(Bx, By, '#ffd166'); drawJoint(Cx, Cy, '#a8dadc', true); drawJoint(Px, Py, '#ff9f43');
 
-                // --- NEW EXPLICIT TEXT LABELS (Offset slightly so they don't cover joints) ---
                 const drawLabel = (x, y, text, color, dx, dy) => {
                     ctx.fillStyle = color;
                     ctx.font = "bold 13px 'Segoe UI', sans-serif";
                     ctx.fillText(text, mapX(x) + dx, mapY(y) + dy);
                 };
                 
-                drawLabel(0, 0, "O2", "#ff6b6b", 6, 15);
-                drawLabel(d_fix, 0, "O4", "#ff6b6b", 6, 15);
-                drawLabel(O5.x, O5.y, "O5", "#c084fc", 6, 15);
-                drawLabel(Ax, Ay, "A", "#06d6a0", 6, -8);
-                drawLabel(Bx, By, "B", "#ffd166", 6, 15);
-                drawLabel(Cx, Cy, "C", "#a8dadc", 14, 4);
-                drawLabel(Px, Py, "P", "#ff9f43", 6, -8);
+                drawLabel(0, 0, "O2", "#ff6b6b", 6, 15); drawLabel(d_fix, 0, "O4", "#ff6b6b", 6, 15); drawLabel(O5.x, O5.y, "O5", "#c084fc", 6, 15);
+                drawLabel(Ax, Ay, "A", "#06d6a0", 6, -8); drawLabel(Bx, By, "B", "#ffd166", 6, 15); drawLabel(Cx, Cy, "C", "#a8dadc", 14, 4); drawLabel(Px, Py, "P", "#ff9f43", 6, -8);
 
                 ctx.fillStyle = "white"; ctx.font = "bold 11px monospace";
                 ctx.fillText(`Crank= ${(phi*180/Math.PI).toFixed(1)}°`, mapX(-75), mapY(47)); ctx.fillText(`Theta= ${theta_deg.toFixed(1)}°`, mapX(-75), mapY(41)); ctx.fillText(`Drop = ${drop_mm.toFixed(2)}mm`, mapX(-75), mapY(35));
@@ -186,19 +217,33 @@
                 ctx.fillStyle = "#333"; ctx.fillRect(mapX(-75), mapY(-43), sX(110), 4); ctx.fillRect(mapX(-75), mapY(-49), sX(110), 4);
                 ctx.fillStyle = "#4CAF50"; ctx.fillRect(mapX(-75), mapY(-43), sX(110 * (isFwd ? p/fwd_arc : 0)), 4);
                 ctx.fillStyle = "#f44336"; ctx.fillRect(mapX(-75), mapY(-49), sX(110 * (!isFwd ? (p-fwd_arc)/ret_arc : 0)), 4);
-                ctx.font = "bold 12px 'Segoe UI'"; ctx.fillStyle = isFwd ? "#4CAF50" : "#f44336"; ctx.fillText(isFwd ? "FORWARD (slow)" : "RETURN (2x fast)", mapX(-75), mapY(-36));
+                
+                // FIXED: Dynamic ratio text for the Return label
+                let qr_ratio = (fwd_arc / ret_arc).toFixed(2);
+                ctx.font = "bold 12px 'Segoe UI'"; 
+                ctx.fillStyle = isFwd ? "#4CAF50" : "#f44336"; 
+                ctx.fillText(isFwd ? "FORWARD (slow)" : `RETURN (${qr_ratio}x fast)`, mapX(-75), mapY(-36));
             });
 
             drawPanel(ctx, 740, 40, 640, 680, "Disk Motion", -80, 80, -80, 70, (mapX, mapY, sX, sY) => {
                 const hLine = (y, c) => { ctx.strokeStyle=c; ctx.beginPath(); ctx.moveTo(mapX(-80), mapY(y)); ctx.lineTo(mapX(80), mapY(y)); ctx.stroke(); };
-                ctx.lineWidth = 1; ctx.setLineDash([2,2]); hLine(0, '#4CAF50'); hLine(-5, '#FF9800'); hLine(-15, '#f44336'); ctx.setLineDash([]);
-                ctx.font = "bold 16px Arial"; ctx.fillStyle = "#4CAF50"; ctx.fillText("A", mapX(60), mapY(2)); ctx.fillStyle = "#FF9800"; ctx.fillText("B", mapX(60), mapY(-3)); ctx.fillStyle = "#f44336"; ctx.fillText("C", mapX(60), mapY(-13));
+                ctx.lineWidth = 1; ctx.setLineDash([2,2]); 
+                // Dynamically place the target lines based on user input
+                hLine(0, '#4CAF50'); hLine(-drop_B, '#FF9800'); hLine(-drop_C, '#f44336'); 
+                ctx.setLineDash([]);
+                
+                ctx.font = "bold 16px Arial"; ctx.fillStyle = "#4CAF50"; ctx.fillText("A", mapX(60), mapY(2)); 
+                ctx.fillStyle = "#FF9800"; ctx.fillText("B", mapX(60), mapY(-drop_B + 2)); 
+                ctx.fillStyle = "#f44336"; ctx.fillText("C", mapX(60), mapY(-drop_C + 2));
 
                 ctx.beginPath(); ctx.arc(mapX(0), mapY(-drop_mm), sX(50), (theta_deg - 90)*Math.PI/180, (theta_deg - 360)*Math.PI/180, true); ctx.lineTo(mapX(0), mapY(-drop_mm));
                 ctx.fillStyle = 'rgba(173, 216, 230, 0.9)'; ctx.fill(); ctx.strokeStyle = '#2a6496'; ctx.lineWidth = 2; ctx.stroke();
                 ctx.beginPath(); ctx.arc(mapX(0), mapY(-drop_mm), 5, 0, 2*Math.PI); ctx.fillStyle = "#1a1a2e"; ctx.fill(); ctx.strokeStyle = "#2a6496"; ctx.stroke();
 
-                ctx.fillStyle = "#7fdbff"; ctx.font = "bold 13px monospace"; ctx.fillText(`Rotation: ${theta_deg.toFixed(1)} deg`, mapX(-10), mapY(60)); ctx.fillText(`Drop: ${drop_mm.toFixed(2)} mm`, mapX(-10), mapY(54)); ctx.fillText(`QR: ${(fwd_arc/ret_arc).toFixed(2)}:1`, mapX(-10), mapY(48));
+                ctx.fillStyle = "#7fdbff"; ctx.font = "bold 13px monospace"; 
+                ctx.fillText(`Rotation: ${theta_deg.toFixed(1)} deg`, mapX(-10), mapY(60)); 
+                ctx.fillText(`Drop: ${drop_mm.toFixed(2)} mm`, mapX(-10), mapY(54)); 
+                ctx.fillText(`QR: ${(fwd_arc/ret_arc).toFixed(2)}:1`, mapX(-10), mapY(48));
             });
         }
 
@@ -213,7 +258,7 @@
             ctx.setLineDash([]); drawCmds(mapX, mapY, d=>d*sX, d=>d*sY);
         }
 
-        window.onload = () => { initMechanism(); };
+        window.onload = () => { updateFromGeom(); };
     </script>
 </body>
 </html>
