@@ -36,7 +36,12 @@
 </head>
 <body>
     <aside class="sidebar">
-        <h2>Kinematic Parameters</h2>
+        <h2>Task Specifications</h2>
+        <div class="control-group"><label>Time Ratio</label><input type="number" id="tr" value="2.0" step="0.05" onchange="updateFromTR()"></div>
+        <div class="control-group"><label>Target Drop B (45&deg;) (mm)</label><input type="number" id="dropB" value="5" step="0.5" onchange="updateKinematics()"></div>
+        <div class="control-group"><label>Target Drop C (90&deg;) (mm)</label><input type="number" id="dropC" value="15" step="0.5" onchange="updateKinematics()"></div>
+
+        <h2 style="margin-top: 15px; border-top: 1px solid #4ca1af; padding-top: 15px;">Kinematic Parameters</h2>
         <div class="control-group"><label>Crank Radius O2-A (mm)</label><input type="number" id="crank" value="30" onchange="updateKinematics()"></div>
         <div class="control-group"><label>Ground O2-O4 (mm)</label><input type="number" id="dfix" value="60" onchange="updateKinematics()"></div>
         <div class="control-group"><label>Slider Arm O4-B (mm)</label><input type="number" id="larm" value="25" onchange="updateKinematics()"></div>
@@ -96,7 +101,32 @@
     <script>
         let MECH = {};
         const x_d = -35.0, r_p = 18.0, beta_body = 150.0 * Math.PI / 180.0, R_DISC = 50.0;
-        const a_c = (5 - 2025*(5.0/4050))/45, b_c = 5.0/4050;
+        
+        // Dynamic Drop Coefficients
+        let drop_B = 5.0, drop_C = 15.0;
+        let a_c = 0, b_c = 0;
+
+        function updateFromTR() {
+            let tr = parseFloat(document.getElementById('tr').value);
+            if (tr <= 1.0) { tr = 1.01; document.getElementById('tr').value = tr; }
+            let d_fix = parseFloat(document.getElementById('dfix').value);
+            let current_crank = parseFloat(document.getElementById('crank').value);
+            let new_crank;
+
+            // Retained Logic: Allows both Crank-Rocker and Drag-Link (Whitworth) inversions based on current geometry
+            if (current_crank < d_fix) {
+                // Crank-Rocker Geometry
+                let alpha_deg = 90 * (tr - 1) / (tr + 1);
+                new_crank = d_fix * Math.sin(alpha_deg * Math.PI / 180);
+            } else {
+                // Whitworth Drag-Link Geometry
+                let phi_deg = 180 / (tr + 1);
+                new_crank = d_fix / Math.cos(phi_deg * Math.PI / 180);
+            }
+            
+            document.getElementById('crank').value = new_crank.toFixed(2);
+            updateKinematics();
+        }
 
         function initMechBase() {
             const r_crank = parseFloat(document.getElementById('crank').value);
@@ -165,6 +195,21 @@
 
         function updateKinematics() {
             initMechBase();
+            
+            // Sync TR display if Geometry is manually changed
+            if (document.activeElement.id !== 'tr') {
+                let fwd = MECH.fwd_arc;
+                let ret = 2 * Math.PI - fwd;
+                let tr_val = fwd / ret;
+                if (tr_val < 1.0) tr_val = 1.0 / tr_val; 
+                document.getElementById('tr').value = tr_val.toFixed(2);
+            }
+
+            drop_B = parseFloat(document.getElementById('dropB').value);
+            drop_C = parseFloat(document.getElementById('dropC').value);
+            b_c = (drop_C - 2 * drop_B) / 4050.0;
+            a_c = (drop_B - 2025.0 * b_c) / 45.0;
+
             const phi_deg = parseFloat(document.getElementById('phi-slider').value);
             document.getElementById('phi-display').innerText = phi_deg.toFixed(1);
             
@@ -381,7 +426,7 @@
             ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.0/S;
             ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(0, -30); ctx.stroke();
             
-            const target_drops = [0, 5, 15];
+            const target_drops = [0, drop_B, drop_C];
             ctx.strokeStyle = '#7fb3d5'; ctx.lineWidth = 1.0/S; ctx.globalAlpha = 0.28;
             for(let td of target_drops) { ctx.beginPath(); ctx.arc(0, -td, R_DISC, 0, 2*Math.PI); ctx.stroke(); }
             ctx.globalAlpha = 1.0;
