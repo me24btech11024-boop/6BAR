@@ -35,14 +35,14 @@
 <body>
     <aside class="sidebar">
         <h2>Synthesis Parameters</h2>
-        <div class="control-group"><label>Time Ratio (Fwd:Ret)</label><input type="text" id="time-ratio" value="2:1"></div>
-        <div class="control-group"><label>Base Rocker Length (mm)</label><input type="number" id="rocker-len" value="95"></div>
-        <div class="control-group"><label>Rocker Swing Angle (deg)</label><input type="number" id="rocker-swing" value="60"></div>
-        <div class="control-group" style="margin-top: 15px; border-top: 1px solid #4ca1af; padding-top: 15px;">
-            <label>Disk Radius (mm)</label><input type="number" id="radius" value="50">
-        </div>
-        <div class="control-group"><label>Pose B Drop (mm)</label><input type="number" id="pose-b" value="5"></div>
-        <div class="control-group"><label>Pose C Drop (mm)</label><input type="number" id="pose-c" value="15"></div>
+        <div class="control-group"><label>Time Ratio</label><input type="number" step="0.05" id="tr" value="2.0"></div>
+        <div class="control-group"><label>Ground Dist O2-O4 (mm)</label><input type="number" id="dfix" value="60"></div>
+        <div class="control-group"><label>Slotted Lever Length (mm)</label><input type="number" id="lever-len" value="95"></div>
+        
+        <h2 style="margin-top: 15px; border-top: 1px solid #4ca1af; padding-top: 15px;">Secondary Tasks</h2>
+        <div class="control-group"><label>Target Drop B (45°) (mm)</label><input type="number" id="drop-b" value="5"></div>
+        <div class="control-group"><label>Target Drop C (90°) (mm)</label><input type="number" id="drop-c" value="15"></div>
+        <div class="control-group"><label>Slider Arm O4-B (mm)</label><input type="number" id="larm" value="25"></div>
         <button id="update-btn" onclick="triggerSynthesis()">Synthesize Mechanism</button>
     </aside>
 
@@ -54,8 +54,8 @@
             <a href="a.html" class="tab-button">Animation</a>
         </nav>
         <div class="tab-content">
-            <h2>Analytical Synthesis of 4-Bar Quick Return</h2>
-            <p>Employing the <strong>Circular Locus Method</strong> to synthesize a valid Grashof mechanism.</p>
+            <h2>Analytical Synthesis of Inverted Slider-Crank</h2>
+            <p>Employing <strong>Geometric Tangency</strong> to synthesize a Crank-Slotted-Lever mechanism matching the required Time Ratio.</p>
             <div class="synthesis-grid">
                 <div id="derivation-output" class="derivation-column">
                     <div style="border: 2px dashed #bdc3c7; padding: 40px; text-align: center; color: #95a5a6; border-radius: 8px;">
@@ -71,14 +71,29 @@
     </main>
 
     <script>
-        function drawMechanism(O2, B1, B2, C_x, R_circle) {
+        function drawMechanism(d_fix, r_crank, L_lever, alpha_rad) {
             const canvas = document.getElementById('mechCanvas');
             const ctx = canvas.getContext('2d');
+            
+            // Calculate extreme endpoints of the lever relative to O4
+            const half_alpha = alpha_rad / 2;
+            const E1_x = d_fix - L_lever * Math.cos(half_alpha);
+            const E1_y = L_lever * Math.sin(half_alpha);
+            const E2_x = d_fix - L_lever * Math.cos(half_alpha);
+            const E2_y = -L_lever * Math.sin(half_alpha);
+            
+            // Tangent points on crank circle
+            const T1_x = r_crank * -Math.sin(half_alpha);
+            const T1_y = r_crank * Math.cos(half_alpha);
+            const T2_x = r_crank * -Math.sin(half_alpha);
+            const T2_y = -r_crank * Math.cos(half_alpha);
+
+            // Setup scaling
             const pad = 40;
-            const minX = Math.min(0, B1[0], B2[0], O2[0], C_x - R_circle) - pad;
-            const maxX = Math.max(0, B1[0], B2[0], O2[0], C_x + R_circle) + pad;
-            const minY = Math.min(0, B1[1], B2[1], O2[1], -R_circle) - pad;
-            const maxY = Math.max(0, B1[1], B2[1], O2[1], R_circle) + pad;
+            const minX = Math.min(0, d_fix, E1_x, E2_x, -r_crank) - pad;
+            const maxX = Math.max(0, d_fix, E1_x, E2_x, r_crank) + pad;
+            const minY = Math.min(0, E1_y, E2_y, -r_crank) - pad;
+            const maxY = Math.max(0, E1_y, E2_y, r_crank) + pad;
             const scale = Math.min(canvas.width / (maxX - minX), canvas.height / (maxY - minY));
             const offX = -minX * scale + (canvas.width - (maxX - minX)*scale)/2;
             const offY = -minY * scale + (canvas.height - (maxY - minY)*scale)/2;
@@ -87,77 +102,87 @@
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            ctx.beginPath(); ctx.arc(tX(C_x), tY(0), R_circle * scale, 0, 2*Math.PI);
-            ctx.strokeStyle = '#bdc3c7'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
+            // Draw Ground Link
+            ctx.beginPath(); ctx.moveTo(tX(0), tY(0)); ctx.lineTo(tX(d_fix), tY(0));
+            ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 4; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]);
             
-            ctx.beginPath(); ctx.moveTo(tX(0), tY(0)); ctx.lineTo(tX(O2[0]), tY(O2[1]));
-            ctx.strokeStyle = '#2980b9'; ctx.lineWidth = 4; ctx.stroke();
+            // Draw Crank Circle
+            ctx.beginPath(); ctx.arc(tX(0), tY(0), r_crank * scale, 0, 2*Math.PI);
+            ctx.strokeStyle = '#3498db'; ctx.lineWidth = 2; ctx.stroke();
             
-            ctx.lineWidth = 2; ctx.strokeStyle = '#2c3e50'; ctx.setLineDash([8, 4]);
-            ctx.beginPath(); ctx.moveTo(tX(0), tY(0)); ctx.lineTo(tX(B1[0]), tY(B1[1])); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(tX(0), tY(0)); ctx.lineTo(tX(B2[0]), tY(B2[1])); ctx.stroke();
-            ctx.setLineDash([]);
+            // Draw Tangent Construction Lines (Crank Radius to Tangent)
+            ctx.beginPath(); ctx.moveTo(tX(0), tY(0)); ctx.lineTo(tX(T1_x), tY(T1_y));
+            ctx.moveTo(tX(0), tY(0)); ctx.lineTo(tX(T2_x), tY(T2_y));
+            ctx.strokeStyle = '#95a5a6'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
             
-            ctx.strokeStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(tX(O2[0]), tY(O2[1])); ctx.lineTo(tX(B1[0]), tY(B1[1])); ctx.stroke();
-            ctx.strokeStyle = '#27ae60'; ctx.beginPath(); ctx.moveTo(tX(O2[0]), tY(O2[1])); ctx.lineTo(tX(B2[0]), tY(B2[1])); ctx.stroke();
+            // Draw Lever Extremes
+            ctx.lineWidth = 3; 
+            ctx.strokeStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(tX(d_fix), tY(0)); ctx.lineTo(tX(E1_x), tY(E1_y)); ctx.stroke();
+            ctx.strokeStyle = '#27ae60'; ctx.beginPath(); ctx.moveTo(tX(d_fix), tY(0)); ctx.lineTo(tX(E2_x), tY(E2_y)); ctx.stroke();
             
+            // Labels
             const drawPoint = (x, y, color, label, dx, dy) => {
-                ctx.beginPath(); ctx.arc(tX(x), tY(y), 6, 0, 2*Math.PI);
+                ctx.beginPath(); ctx.arc(tX(x), tY(y), 5, 0, 2*Math.PI);
                 ctx.fillStyle = color; ctx.fill();
-                ctx.fillStyle = '#333'; ctx.font = 'bold 14px Arial'; ctx.fillText(label, tX(x) + dx, tY(y) + dy);
+                ctx.fillStyle = '#333'; ctx.font = 'bold 12px Arial'; ctx.fillText(label, tX(x) + dx, tY(y) + dy);
             };
             
-            drawPoint(0, 0, '#000', 'O4', -20, 20); drawPoint(O2[0], O2[1], '#000', 'O2', 10, 20);
-            drawPoint(B1[0], B1[1], '#e74c3c', 'B1', -25, -10); drawPoint(B2[0], B2[1], '#27ae60', 'B2', -25, 20);
+            drawPoint(0, 0, '#3498db', 'O2', -5, 18); 
+            drawPoint(d_fix, 0, '#000', 'O4', 10, 18);
+            drawPoint(E1_x, E1_y, '#e74c3c', 'Lever Ext 1', -35, -10); 
+            drawPoint(E2_x, E2_y, '#27ae60', 'Lever Ext 2', -35, 20);
+            drawPoint(T1_x, T1_y, '#3498db', 'A1', -20, 5);
+            drawPoint(T2_x, T2_y, '#3498db', 'A2', -20, -5);
+
+            // Draw Swing Angle Arc
+            ctx.beginPath();
+            ctx.arc(tX(d_fix), tY(0), 40, Math.PI - half_alpha, Math.PI + half_alpha);
+            ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 1; ctx.stroke();
+            ctx.fillStyle = '#2c3e50'; ctx.font = '12px Arial';
+            ctx.fillText(`α = ${(alpha_rad * 180 / Math.PI).toFixed(1)}°`, tX(d_fix) - 75, tY(0) + 4);
         }
 
         function triggerSynthesis() {
-            const tr_input = document.getElementById('time-ratio').value.split(':');
-            const TR = parseFloat(tr_input[0]) / (tr_input[1] ? parseFloat(tr_input[1]) : 1);
-            const L4 = parseFloat(document.getElementById('rocker-len').value);
-            const swing_deg = parseFloat(document.getElementById('rocker-swing').value);
-            const offset_gamma = -45; 
+            let TR = parseFloat(document.getElementById('tr').value);
+            if (TR <= 1.0) TR = 1.01; // Prevent math breakdown
+            const d_fix = parseFloat(document.getElementById('dfix').value);
+            const L_lever = parseFloat(document.getElementById('lever-len').value);
             
+            // Step 1: Calculate Imbalance Angle / Rocker Swing
             const alpha_deg = 180 * (TR - 1) / (TR + 1);
-            const alpha = alpha_deg * Math.PI / 180;
-            const psi = swing_deg * Math.PI / 180;
-            const theta_B1 = Math.PI - (psi / 2);
-            const theta_B2 = Math.PI + (psi / 2);
+            const alpha_rad = alpha_deg * Math.PI / 180;
             
-            const B1 = [L4 * Math.cos(theta_B1), L4 * Math.sin(theta_B1)];
-            const B2 = [L4 * Math.cos(theta_B2), L4 * Math.sin(theta_B2)];
+            // Step 2: Geometric Synthesis (Right triangle at tangency point)
+            // sin(alpha/2) = r_crank / d_fix
+            const r_crank = d_fix * Math.sin(alpha_rad / 2);
             
-            const chord_len = Math.sqrt(Math.pow(B2[0]-B1[0],2) + Math.pow(B2[1]-B1[1],2));
-            const R_circle = (chord_len / 2) / Math.sin(alpha);
-            const d_center = (chord_len / 2) / Math.tan(alpha);
-            const C_x = ((B1[0] + B2[0]) / 2) + d_center;
-            
-            const gamma_rad = offset_gamma * Math.PI / 180;
-            const O2 = [C_x + R_circle * Math.cos(gamma_rad), R_circle * Math.sin(gamma_rad)];
-            
-            const dist_O2_B1 = Math.sqrt(Math.pow(B1[0]-O2[0],2) + Math.pow(B1[1]-O2[1],2));
-            const dist_O2_B2 = Math.sqrt(Math.pow(B2[0]-O2[0],2) + Math.pow(B2[1]-O2[1],2));
-            
-            const L2 = (Math.max(dist_O2_B1, dist_O2_B2) - Math.min(dist_O2_B1, dist_O2_B2)) / 2;
-            const L3 = (Math.max(dist_O2_B1, dist_O2_B2) + Math.min(dist_O2_B1, dist_O2_B2)) / 2;
-            const L1 = Math.sqrt(O2[0]*O2[0] + O2[1]*O2[1]);
-            
-            let links = [L1, L2, L3, L4].sort((a,b) => a - b);
-            const is_grashof = (links[0] + links[3]) < (links[1] + links[2]);
+            // Step 3: Ensure mechanism validity
+            const is_valid = r_crank < d_fix;
 
-            drawMechanism(O2, B1, B2, C_x, R_circle);
+            drawMechanism(d_fix, r_crank, L_lever, alpha_rad);
 
-            // Replaced span tags with native MathJax \color{#c0392b} to fix syntax blocking
             const outputHTML = `
-                <div class="math-box"><h3>Step 1: Imbalance Angle ($\\alpha$)</h3><p>$$ \\alpha = 180^{\\circ} \\times \\frac{${TR.toFixed(2)} - 1}{${TR.toFixed(2)} + 1} = \\mathbf{${alpha_deg.toFixed(2)}^{\\circ}} $$</p></div>
-                <div class="math-box"><h3>Step 2: Locus of the Crank Pivot ($O_2$)</h3><p>$$ R_{locus} = \\frac{\\text{Chord}/2}{\\sin(\\alpha)} = \\mathbf{${R_circle.toFixed(2)} \\text{ mm}} $$</p></div>
-                <div class="math-box"><h3>Step 3: Dimensional Synthesis (Link Lengths)</h3>
-                    <p>$$ L_2 \\text{ (Crank)} = \\color{#c0392b}{\\mathbf{${L2.toFixed(2)} \\text{ mm}}} $$</p>
-                    <p>$$ L_3 \\text{ (Coupler)} = \\color{#c0392b}{\\mathbf{${L3.toFixed(2)} \\text{ mm}}} $$</p>
-                    <p>$$ L_1 \\text{ (Ground)} = \\color{#c0392b}{\\mathbf{${L1.toFixed(2)} \\text{ mm}}} $$</p>
+                <div class="math-box">
+                    <h3>Step 1: Imbalance / Swing Angle ($\\alpha$)</h3>
+                    <p>In an Inverted Slider-Crank, the extreme positions of the lever define the forward and return strokes. The total lever swing angle is exactly the required imbalance angle.</p>
+                    <p>$$ \\alpha = 180^{\\circ} \\times \\frac{${TR.toFixed(2)} - 1}{${TR.toFixed(2)} + 1} = \\mathbf{${alpha_deg.toFixed(2)}^{\\circ}} $$</p>
                 </div>
-                <div class="math-box" style="border-left-color: ${is_grashof ? '#27ae60' : '#c0392b'};"><h3>Step 4: Grashof Condition</h3>
-                    <p>Continuous Rotation Possible: <strong>${is_grashof ? 'YES' : 'NO'}</strong></p>
+                <div class="math-box">
+                    <h3>Step 2: Crank Radius Synthesis</h3>
+                    <p>At the extreme limits of the lever's swing, the slotted lever is perfectly <strong>tangent</strong> to the crank's rotational circle. This forms a right triangle between $O_2$, $O_4$, and the tangent point $A$.</p>
+                    <p>$$ \\sin\\left(\\frac{\\alpha}{2}\\right) = \\frac{r_{crank}}{d_{fix}} $$</p>
+                    <p>$$ r_{crank} = ${d_fix.toFixed(2)} \\times \\sin(${ (alpha_deg/2).toFixed(2) }^{\\circ}) = \\color{#c0392b}{\\mathbf{${r_crank.toFixed(2)} \\text{ mm}}} $$</p>
+                </div>
+                <div class="math-box">
+                    <h3>Step 3: Mechanism Assembly Parameters</h3>
+                    <p>$$ \\text{Ground Distance } (O_2-O_4) = \\mathbf{${d_fix.toFixed(2)} \\text{ mm}} $$</p>
+                    <p>$$ \\text{Crank Radius } (O_2-A) = \\mathbf{${r_crank.toFixed(2)} \\text{ mm}} $$</p>
+                    <p>$$ \\text{Slotted Lever Length} = \\mathbf{${L_lever.toFixed(2)} \\text{ mm}} $$</p>
+                </div>
+                <div class="math-box" style="border-left-color: ${is_valid ? '#27ae60' : '#e74c3c'};">
+                    <h3>Step 4: Kinematic Validity</h3>
+                    <p>For a continuous Quick-Return crank-rocker, the crank must be smaller than the ground distance ($r_{crank} < d_{fix}$).</p>
+                    <p>Mechanism Valid: <strong>${is_valid ? 'YES' : 'NO'}</strong></p>
                 </div>
             `;
             document.getElementById('derivation-output').innerHTML = outputHTML;
